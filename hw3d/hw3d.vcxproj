@@ -148,14 +148,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CusTimer.cpp" />
-    <ClCompile Include="DX11.cpp" />
-    <ClCompile Include="MyDxObject.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChiliWin.h" />
     <ClInclude Include="CusTimer.h" />
-    <ClInclude Include="MyDxObject.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">
