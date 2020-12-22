@@ -4,6 +4,7 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include "CusTimer.h"
+#include <DirectXColors.h>
 
 #pragma comment(lib,"d3d11.lib") 
 #pragma comment(lib,"dxgi.lib") 
@@ -14,8 +15,14 @@ using namespace std;
 
 struct SimpleVertex
 {
-	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
+	//XMFLOAT3 pos;
+	float X;
+	float Y;
+	float Z;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+	unsigned char a;
 };
 
 
@@ -54,23 +61,20 @@ ConstantBuffer transformationM;
 //};
 const unsigned short indices[] =
 {
-		3,1,0,
-		2,1,3,
-
-		0,5,4,
-		1,5,0,
-
-		3,4,7,
-		0,4,3,
-
-		1,6,5,
-		2,6,1,
-
-		2,7,6,
-		3,7,2,
-
-		6,4,5,
-		7,4,6,
+	//每面朝外，
+		4,5,6,	//front
+		//6,7,4,
+		4,6,7,
+		1,0,3,//back
+		1,3,2,
+		0,1,5,  //top
+		5,4,0,
+		7,6,2,//bottom
+		2,3,7,
+		1,2,6,//right
+		6,5,1,
+		3,0,4//left
+		,4,7,3
 };
 
 HRESULT DrawTriangle();
@@ -79,10 +83,10 @@ HRESULT DoFrame(HWND hWnd)
 { 
 	WCHAR pwch[64] = { 0 };
 	//DrawTriangle(timer.Peek());
-	angle = timer.Peek();
+	angle = -timer.Peek();
 
-	transformationM.mWorld = XMMatrixRotationY(angle);
-	ConstantBuffer cb;
+	transformationM.mWorld = XMMatrixRotationY(-angle);;
+	ConstantBuffer cb = {};
 	cb.mWorld = transformationM.mWorld;
 	cb.mView = transformationM.mView;
 	cb.mProjection = transformationM.mProjection;
@@ -107,7 +111,7 @@ HRESULT DoFrame(HWND hWnd)
 	backcolor[0] = r;
 	backcolor[1] = g;
 	backcolor[2] = b;
-	pDeviceContext->ClearRenderTargetView(mRenderTargetView, backcolor);
+	pDeviceContext->ClearRenderTargetView(mRenderTargetView, Colors::MidnightBlue);
 
 	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
@@ -254,7 +258,7 @@ HRESULT DrawTriangle()
 	const D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{"Position",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
-		{"Color",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"Color",0,DXGI_FORMAT_R8G8B8A8_UNORM,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
 	};
 	UINT numElements = ARRAYSIZE(layout);
 
@@ -286,14 +290,14 @@ HRESULT DrawTriangle()
 	// 创建顶点缓冲
 	SimpleVertex vertices[] =
 	{
-		{ XMFLOAT3(-0.5f, 0.5f, -1.0f), XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(0.5f, 0.5f, -1.0f), XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(0.5f, 0.5f, 1.0f), XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f, 0.5f, 1.0f), XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f, -0.5f, -1.0f), XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(0.5f, -0.5f, -1.0f), XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) },
-		{ XMFLOAT3(0.5f, -0.5f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(-0.5f, -0.5f, 1.0f), XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f) },
+		{-0.5f,0.5f, 1.0f,255,0,0},
+		{0.5f, 0.5f, 1.0f,0,255,0},
+		{0.5f, -0.5f, 1.0f,0,0,255},
+		{-0.5f, -0.5f, 1.0f,255,255,255},
+		{-0.5f,0.5f, -1.0f,255,0,0},
+		{0.5f, 0.5f, -1.0f,0,255,0},
+		{0.5f, -0.5f, -1.0f,0,0,255},
+		{-0.5f, -0.5f, -1.0f,255,255,255}
 	};
 
 	D3D11_BUFFER_DESC bd = {};
@@ -321,8 +325,6 @@ HRESULT DrawTriangle()
 	D3D11_SUBRESOURCE_DATA isd = {};
 	isd.pSysMem = indices;
 	hr = pDevice->CreateBuffer(&Ibd, &isd, &pIndoxBuffer);
-	if (FAILED(hr))
-		return hr;
 	pDeviceContext->IASetIndexBuffer(pIndoxBuffer,DXGI_FORMAT_R16_UINT,0);
 	// 设置顶点缓冲
 	UINT stride = sizeof(SimpleVertex);
@@ -342,8 +344,7 @@ HRESULT DrawTriangle()
 	//D3D11_SUBRESOURCE_DATA csd = {};
 	//csd.pSysMem = &cb;
 	hr = pDevice->CreateBuffer(&cbd, nullptr, &pConstantBuffer);
-	if (FAILED(hr))
-		return hr;
+
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
 	// 设置图元拓扑
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -354,7 +355,7 @@ HRESULT DrawTriangle()
 	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	transformationM.mView = XMMatrixLookAtLH(Eye, At, Up);
-	transformationM.mProjection = XMMatrixPerspectiveFovLH(90.f, 4.0f / 3.0f, 0.01f, 100.f);
+	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 4.0f / 3.0f, 0.01f, 100.f);
 	return hr;
 }
 
