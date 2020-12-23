@@ -42,52 +42,9 @@ CusTimer timer ;
 float angle = 0.0f;
 HRESULT hr;
 
-unsigned short indices[9126] = { 0 };
+const auto c = GET_INDOX_AMOUNT(80, 80);
+unsigned short indices[c] = { 0 };
 ConstantBuffer transformationM;
-
-
-//bool GeneratePlane(float width, float depth, int count_x, int count_z, SimpleVertex* VertexBuffer, unsigned short* IndoxBuffer)
-//{
-//	float gap_x = width / (count_x - 1);
-//	float gap_z = depth / (count_z - 1);
-//	int TriangleCount = (count_x - 1) * (count_z - 1) * 2;
-//	int Vcount = 0;
-//	int Icount = 0;
-//	for (int countz = 0; countz < count_z; countz++)
-//	{
-//		for (int countx = 0; countx < count_x; countx++)
-//		{
-//			VertexBuffer[Vcount].X = (-width) / 2.f + gap_x * countx;
-//			VertexBuffer[Vcount].Z = depth / 2.f - gap_z * countz;
-//			VertexBuffer[Vcount].Y = 0.f;
-//			VertexBuffer[Vcount].r = 0.f+Vcount*0.04f;
-//			VertexBuffer[Vcount].g = 0.5f- Vcount * 0.03f;
-//			VertexBuffer[Vcount].b = 0.f+Vcount * 0.02f;
-//			VertexBuffer[Vcount].a = 1.f;
-//			Vcount++;
-//		}
-//	}
-//	for (int count = 0; count < count_x * count_z; count++)
-//	{
-//		if ((count - count_x + 1) >= 0 && (count - count_x + 1) % (count_x) == 0)
-//			continue;
-//		if (Icount < TriangleCount * 3)
-//		{
-//			IndoxBuffer[Icount] = count;
-//			IndoxBuffer[Icount + 1] = count + 1;
-//			IndoxBuffer[Icount + 2] = count + count_x + 1;
-//			IndoxBuffer[Icount + 3] = count;
-//			IndoxBuffer[Icount + 4] = count + count_x + 1;
-//			IndoxBuffer[Icount + 5] = count + count_x;
-//			Icount += 6;
-//		}
-//	}
-//
-//	return true;
-//}
-
-
-
 HRESULT DrawTriangle();
 void Render();
 HRESULT DoFrame(HWND hWnd)
@@ -299,9 +256,10 @@ HRESULT DrawTriangle()
 	if (FAILED(hr))
 		return hr;
 	// ´´½¨¶¥µã»º³å
-	SimpleVertex vertices[1600] ={0};
+	const auto i = GET_POINTAMOUNT(80, 80);
+	SimpleVertex vertices[i] ={0};
 
-	 GeometryGenerator::GeneratePlane(160.f, 160.f, 40, 40, vertices, indices);
+	 GeometryGenerator::GeneratePlane(160.f, 160.f, 80, 80, vertices, indices);
 	D3D11_BUFFER_DESC bd = {};
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
