@@ -5,6 +5,7 @@
 #include <DirectXMath.h>
 #include "CusTimer.h"
 #include <DirectXColors.h>
+#include "GeometryGenerator.h"
 
 #pragma comment(lib,"d3d11.lib") 
 #pragma comment(lib,"dxgi.lib") 
@@ -13,17 +14,7 @@
 using namespace DirectX;
 using namespace std;
 
-struct SimpleVertex
-{
-	//XMFLOAT3 pos;
-	float X;
-	float Y;
-	float Z;
-	unsigned char r;
-	unsigned char g;
-	unsigned char b;
-	unsigned char a;
-};
+
 
 
 struct ConstantBuffer
@@ -51,31 +42,51 @@ CusTimer timer ;
 float angle = 0.0f;
 HRESULT hr;
 
+unsigned short indices[9126] = { 0 };
 ConstantBuffer transformationM;
 
 
-//const unsigned short indices[] =
+//bool GeneratePlane(float width, float depth, int count_x, int count_z, SimpleVertex* VertexBuffer, unsigned short* IndoxBuffer)
 //{
-//	0,1,2,
-//	0,2,3
-//};
-const unsigned short indices[] =
-{
-	//每面朝外，
-		4,5,6,	//front
-		//6,7,4,
-		4,6,7,
-		1,0,3,//back
-		1,3,2,
-		0,1,5,  //top
-		5,4,0,
-		7,6,2,//bottom
-		2,3,7,
-		1,2,6,//right
-		6,5,1,
-		3,0,4//left
-		,4,7,3
-};
+//	float gap_x = width / (count_x - 1);
+//	float gap_z = depth / (count_z - 1);
+//	int TriangleCount = (count_x - 1) * (count_z - 1) * 2;
+//	int Vcount = 0;
+//	int Icount = 0;
+//	for (int countz = 0; countz < count_z; countz++)
+//	{
+//		for (int countx = 0; countx < count_x; countx++)
+//		{
+//			VertexBuffer[Vcount].X = (-width) / 2.f + gap_x * countx;
+//			VertexBuffer[Vcount].Z = depth / 2.f - gap_z * countz;
+//			VertexBuffer[Vcount].Y = 0.f;
+//			VertexBuffer[Vcount].r = 0.f+Vcount*0.04f;
+//			VertexBuffer[Vcount].g = 0.5f- Vcount * 0.03f;
+//			VertexBuffer[Vcount].b = 0.f+Vcount * 0.02f;
+//			VertexBuffer[Vcount].a = 1.f;
+//			Vcount++;
+//		}
+//	}
+//	for (int count = 0; count < count_x * count_z; count++)
+//	{
+//		if ((count - count_x + 1) >= 0 && (count - count_x + 1) % (count_x) == 0)
+//			continue;
+//		if (Icount < TriangleCount * 3)
+//		{
+//			IndoxBuffer[Icount] = count;
+//			IndoxBuffer[Icount + 1] = count + 1;
+//			IndoxBuffer[Icount + 2] = count + count_x + 1;
+//			IndoxBuffer[Icount + 3] = count;
+//			IndoxBuffer[Icount + 4] = count + count_x + 1;
+//			IndoxBuffer[Icount + 5] = count + count_x;
+//			Icount += 6;
+//		}
+//	}
+//
+//	return true;
+//}
+
+
 
 HRESULT DrawTriangle();
 void Render();
@@ -258,7 +269,7 @@ HRESULT DrawTriangle()
 	const D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{"Position",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
-		{"Color",0,DXGI_FORMAT_R8G8B8A8_UNORM,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"Color",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
 	};
 	UINT numElements = ARRAYSIZE(layout);
 
@@ -288,18 +299,9 @@ HRESULT DrawTriangle()
 	if (FAILED(hr))
 		return hr;
 	// 创建顶点缓冲
-	SimpleVertex vertices[] =
-	{
-		{-0.5f,0.5f, 1.0f,255,0,0},
-		{0.5f, 0.5f, 1.0f,0,255,0},
-		{0.5f, -0.5f, 1.0f,0,0,255},
-		{-0.5f, -0.5f, 1.0f,255,255,255},
-		{-0.5f,0.5f, -1.0f,255,0,0},
-		{0.5f, 0.5f, -1.0f,0,255,0},
-		{0.5f, -0.5f, -1.0f,0,0,255},
-		{-0.5f, -0.5f, -1.0f,255,255,255}
-	};
+	SimpleVertex vertices[1600] ={0};
 
+	 GeometryGenerator::GeneratePlane(160.f, 160.f, 40, 40, vertices, indices);
 	D3D11_BUFFER_DESC bd = {};
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -341,8 +343,6 @@ HRESULT DrawTriangle()
 	cbd.ByteWidth = sizeof(ConstantBuffer);
 	cbd.StructureByteStride = 0;
 
-	//D3D11_SUBRESOURCE_DATA csd = {};
-	//csd.pSysMem = &cb;
 	hr = pDevice->CreateBuffer(&cbd, nullptr, &pConstantBuffer);
 
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
@@ -351,11 +351,11 @@ HRESULT DrawTriangle()
 
 	//初始化矩阵
 	transformationM.mWorld = XMMatrixIdentity();
-	XMVECTOR Eye = XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f);
-	XMVECTOR At = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 80.f, -100.0f, 0.0f);
+	XMVECTOR At = XMVectorSet(0.0f, 0.f, 0.0f, 0.0f);
+	XMVECTOR Up = XMVectorSet(0.0f, 1.f, 0.0f, 0.0f);
 	transformationM.mView = XMMatrixLookAtLH(Eye, At, Up);
-	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 4.0f / 3.0f, 0.01f, 100.f);
+	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 4.0f / 3.0f, 0.01f, 1000.f);
 	return hr;
 }
 
