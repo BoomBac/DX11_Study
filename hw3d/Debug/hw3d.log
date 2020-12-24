@@ -1,16 +1,15 @@
 ﻿cl : command line warning D9025: overriding '/D_DEBUG' with '/U_DEBUG'
   WinMain.cpp
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(76,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(76,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(77,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(77,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(78,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(78,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(168,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(168,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(169,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(169,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(170,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(170,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(88): warning C4715: 'DoFrame': not all control paths return a value
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(89,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(89,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(90,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(90,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(91,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(91,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(182,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(182,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(183,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(183,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(184,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(184,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
   hw3d.vcxproj -> M:\vs2019_project\hw3d\Debug\hw3d.exe

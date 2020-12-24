@@ -14,6 +14,11 @@
 using namespace DirectX;
 using namespace std;
 
+struct PointLight
+{
+	XMFLOAT4 Color;
+	XMFLOAT4 Position;
+};
 
 
 
@@ -22,7 +27,9 @@ struct ConstantBuffer
 	XMMATRIX mWorld;
 	XMMATRIX mView;
 	XMMATRIX mProjection;
+	PointLight plight;
 };
+
 
 
 ID3D11DepthStencilView* mDepthStencilView;
@@ -42,8 +49,12 @@ CusTimer timer ;
 float angle = 0.0f;
 HRESULT hr;
 
-const auto c = GET_INDOX_AMOUNT(80, 80);
-unsigned short indices[c] = { 0 };
+const auto c = GET_INDOX_AMOUNT(5, 5);
+unsigned short indices[c+36] = { 0 };
+
+const auto i = GET_POINTAMOUNT(5, 5);
+SimpleVertex vertices[i+8] = { 0 };
+
 ConstantBuffer transformationM;
 HRESULT DrawTriangle();
 void Render();
@@ -58,6 +69,8 @@ HRESULT DoFrame(HWND hWnd)
 	cb.mWorld = transformationM.mWorld;
 	cb.mView = transformationM.mView;
 	cb.mProjection = transformationM.mProjection;
+	cb.plight.Color = { 0.0f,0.5f,0.0f,1.0f };
+	cb.plight.Position = { 0.0f,20.f*cosf(angle),0.0f,1.0f};
 
 	swprintf(pwch, 64, L"Time is%f", angle);
 	SetWindowText(hWnd, pwch);
@@ -80,11 +93,12 @@ HRESULT DoFrame(HWND hWnd)
 	backcolor[1] = g;
 	backcolor[2] = b;
 	pDeviceContext->ClearRenderTargetView(mRenderTargetView, Colors::MidnightBlue);
-
+	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
 	pDeviceContext->DrawIndexed(sizeof(indices) / sizeof(unsigned short), 0, 0);
 	mSwapChain->Present(0, 0);
+	return hr;
 }
 
 bool initdx11(HWND hWnd)
@@ -225,8 +239,8 @@ HRESULT DrawTriangle()
 	//定义输入布局描述
 	const D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
-		{"Position",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
-		{"Color",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
 	};
 	UINT numElements = ARRAYSIZE(layout);
 
@@ -256,10 +270,12 @@ HRESULT DrawTriangle()
 	if (FAILED(hr))
 		return hr;
 	// 创建顶点缓冲
-	const auto i = GET_POINTAMOUNT(80, 80);
-	SimpleVertex vertices[i] ={0};
 
-	 GeometryGenerator::GeneratePlane(160.f, 160.f, 80, 80, vertices, indices);
+
+
+	GeometryGenerator::GeneratePlane(160.f, 160.f, 5, 5, vertices, indices);
+	GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GET_POINTAMOUNT(5, 5), GET_INDOX_AMOUNT(5, 5), Vpostion{0.f,50.f,0.f});
+
 	D3D11_BUFFER_DESC bd = {};
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;

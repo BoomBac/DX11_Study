@@ -1,22 +1,39 @@
+struct PointLight
+{
+	float4 Color;
+	float4 Position;
+};
+
+
+struct VS_INPUT
+{
+	float3 Pos : POSITION;
+	float3 Norm : NORMAL;
+};
+
+
 struct VSOut
 {
-	float3 color : Color;
-	float4 pos : SV_Position;
+	float4 Pos : SV_POSITION;
+	float3 Norm : TEXCOORD0;
+	float3 PosW : POSITION;
 };
 cbuffer CBuf
 {
 	row_major matrix World;
 	row_major matrix View;
 	row_major matrix Projection;
+	PointLight plight;
 };
-VSOut VS(float3 pos : Position, float3 color : Color)
+
+VSOut VS(VS_INPUT input)
 {
 	VSOut vso;
-	vso.pos = mul(float4(pos, 1.0f), World);
-	vso.pos = mul(vso.pos, View);
-	vso.pos = mul(vso.pos, Projection);
-//vso.pos = float4(pos, 1.0f);
-	vso.color = color;
+	vso.PosW = mul(float4(input.Pos, 1.0f), World);
+	vso.Pos = mul(float4(input.Pos,1.0f), World);
+	vso.Pos = mul(vso.Pos, View);
+	vso.Pos = mul(vso.Pos, Projection);
+	vso.Norm = mul(float4(input.Norm, 1.f), World).xyz;
 	return vso;
 }
 
