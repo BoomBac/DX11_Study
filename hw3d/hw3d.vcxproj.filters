@@ -49,5 +49,8 @@
     <FxCompile Include="PixelShader.hlsl">
       <Filter>shade</Filter>
     </FxCompile>
+    <FxCompile Include="VertexShader1.hlsl">
+      <Filter>shade</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

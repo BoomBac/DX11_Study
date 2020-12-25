@@ -1,9 +1,3 @@
-struct PointLight
-{
-	float4 Color;
-	float4 Position;
-};
-
 
 struct VS_INPUT
 {
@@ -21,9 +15,9 @@ struct VSOut
 cbuffer CBuf
 {
 	row_major matrix World;
+	row_major matrix WorldInvTranspose;
 	row_major matrix View;
 	row_major matrix Projection;
-	PointLight plight;
 };
 
 VSOut VS(VS_INPUT input)

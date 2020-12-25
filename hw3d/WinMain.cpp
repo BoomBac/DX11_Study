@@ -25,6 +25,7 @@ struct PointLight
 struct ConstantBuffer
 {
 	XMMATRIX mWorld;
+	XMMATRIX WorldInvTranspose;
 	XMMATRIX mView;
 	XMMATRIX mProjection;
 	PointLight plight;
@@ -39,6 +40,7 @@ ID3D11DeviceContext* pDeviceContext = nullptr;
 IDXGISwapChain* mSwapChain = nullptr;
 ID3D11RenderTargetView* mRenderTargetView = nullptr;
 ID3D11VertexShader* pVertexShade = nullptr;
+ID3D11VertexShader* pVertexShade1 = nullptr;
 ID3D11PixelShader* pPixelShade = nullptr;
 ID3D11InputLayout* pVertexLayout = nullptr;
 ID3D11Buffer* pVertexBuffer = nullptr;
@@ -49,6 +51,12 @@ CusTimer timer ;
 float angle = 0.0f;
 HRESULT hr;
 
+// 立方体世界矩阵Y偏移
+auto cubeMove = 0.f;		//记录当前偏移量
+float CubeTransformation= 0.f;	//cube目标偏移量
+float LightTransformation = 50.f;	//light目标偏移量
+const float LerpSpeed = 0.995f;
+
 const auto c = GET_INDOX_AMOUNT(5, 5);
 unsigned short indices[c+36] = { 0 };
 
@@ -56,23 +64,31 @@ const auto i = GET_POINTAMOUNT(5, 5);
 SimpleVertex vertices[i+8] = { 0 };
 
 ConstantBuffer transformationM;
+
+void lerp(float &target, float &current, float alpha)
+{
+	current = alpha * current + (1 - alpha) * target;
+}
+
 HRESULT DrawTriangle();
 void Render();
 HRESULT DoFrame(HWND hWnd)
 { 
 	WCHAR pwch[64] = { 0 };
 	//DrawTriangle(timer.Peek());
-	angle = -timer.Peek();
+	//angle = -timer.Peek();
 
-	transformationM.mWorld = XMMatrixRotationY(-angle);;
+	//transformationM.mWorld = XMMatrixRotationZ(sinf(angle*TransformationSpeed));
+	//transformationM.mWorld = XMMatrixIdentity();
 	ConstantBuffer cb = {};
-	cb.mWorld = transformationM.mWorld;
+	cb.mWorld = XMMatrixIdentity();
 	cb.mView = transformationM.mView;
 	cb.mProjection = transformationM.mProjection;
-	cb.plight.Color = { 0.0f,0.5f,0.0f,1.0f };
-	cb.plight.Position = { 0.0f,20.f*cosf(angle),0.0f,1.0f};
+	cb.plight.Color = transformationM.plight.Color;
+	cb.plight.Position = transformationM.plight.Position;
+	lerp(LightTransformation, transformationM.plight.Position.y, LerpSpeed);
 
-	swprintf(pwch, 64, L"Time is%f", angle);
+	swprintf(pwch, 64, L"Time is%f", transformationM.plight.Position.y);
 	SetWindowText(hWnd, pwch);
 
 	D3D11_MAPPED_SUBRESOURCE mapSub;
@@ -96,7 +112,31 @@ HRESULT DoFrame(HWND hWnd)
 	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
-	pDeviceContext->DrawIndexed(sizeof(indices) / sizeof(unsigned short), 0, 0);
+	//pDeviceContext->DrawIndexed(sizeof(indices) / sizeof(unsigned short), 0, 0);
+	pDeviceContext->DrawIndexed(96, 0, 0);
+
+	lerp(CubeTransformation, cubeMove, LerpSpeed);
+	transformationM.mWorld =
+	{
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		0,cubeMove,0,1
+	};
+	cb.mWorld = transformationM.mWorld;
+	hr = pDeviceContext->Map(pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSub);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, L"MAP failed", L"Error", MB_OK);
+		return hr;
+	}
+	memcpy(mapSub.pData, &cb, sizeof(cb));
+
+	pDeviceContext->Unmap(pConstantBuffer, 0);
+	pDeviceContext->VSSetShader(pVertexShade1, nullptr, 0);
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
+
+	pDeviceContext->DrawIndexed(36, 96, 0);
 	mSwapChain->Present(0, 0);
 	return hr;
 }
@@ -186,14 +226,11 @@ void Render()
 		backcolor[1] = g;
 		backcolor[2] = b;
 		pDeviceContext->ClearRenderTargetView(mRenderTargetView, backcolor);
-		//DrawTriangle(timer.Peek());
 
 		pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 		pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
 		pDeviceContext->DrawIndexed(sizeof(indices)/sizeof(unsigned short), 0, 0);
 		mSwapChain->Present(0, 0);
-		//MessageBox(NULL,
-		//	L"execute!", L"Error", MB_OK);
 	}
 
 }
@@ -230,6 +267,14 @@ HRESULT DrawTriangle()
 		return hr;
 	}
 	hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pVertexShade);
+	hr = D3DReadFileToBlob(L"VertexShader1.cso", &pVSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+	hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pVertexShade1);
 	if (FAILED(hr))
 	{
 		pVSBlob->Release();
@@ -274,6 +319,7 @@ HRESULT DrawTriangle()
 
 
 	GeometryGenerator::GeneratePlane(160.f, 160.f, 5, 5, vertices, indices);
+	//GeometryGenerator::GenerateHill(160.f, 160.f, 5, 5, vertices, indices);
 	GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GET_POINTAMOUNT(5, 5), GET_INDOX_AMOUNT(5, 5), Vpostion{0.f,50.f,0.f});
 
 	D3D11_BUFFER_DESC bd = {};
@@ -325,11 +371,14 @@ HRESULT DrawTriangle()
 
 	//初始化矩阵
 	transformationM.mWorld = XMMatrixIdentity();
+	transformationM.WorldInvTranspose = XMMatrixTranspose(transformationM.mWorld);
 	XMVECTOR Eye = XMVectorSet(0.0f, 80.f, -100.0f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 0.f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.f, 0.0f, 0.0f);
 	transformationM.mView = XMMatrixLookAtLH(Eye, At, Up);
 	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 4.0f / 3.0f, 0.01f, 1000.f);
+	transformationM.plight.Color = { 0.0f,1.0f,0.f,1.f };
+	transformationM.plight.Position = { 0.f,50.f,0.f,1.f };
 	return hr;
 }
 
@@ -356,11 +405,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_LBUTTONDOWN:
 	{
-		TCHAR buf[1024];
-		int xPos = LOWORD(lParam);	// 
-		int yPos = HIWORD(lParam);	// 
-		wsprintf(buf, TEXT("x = %d,y = %d"), xPos, yPos);
-		MessageBox(hwnd, buf, TEXT("mouse down"), MB_OK);
+		LightTransformation += 10.f;
+		CubeTransformation += 10.f;
+
+	}
+		break;
+	case WM_RBUTTONDOWN:
+	{
+		LightTransformation -= 10.f;
+		CubeTransformation -= 10.f;
 	}
 		break;
 	}

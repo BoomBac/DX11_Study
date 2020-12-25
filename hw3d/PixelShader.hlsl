@@ -19,7 +19,7 @@
 struct PointLight
 {
 	float4 Color;
-	float4 Position;
+	float3 Position;
 };
 
 	struct PS_INPUT
@@ -32,6 +32,7 @@ struct PointLight
 cbuffer CBuf
 {
 	row_major matrix World;
+	row_major matrix WorldInvTranspose;
 	row_major matrix View;
 	row_major matrix Projection;
 	PointLight plight;
@@ -40,14 +41,13 @@ cbuffer CBuf
 
 float4 PS(PS_INPUT input) : SV_Target
 {
-	float4 OutColor = { 1.f, 1.f, 1.f, 1.f };
-	//float dis = distance(float4(input.PosW, 1.0f), plight.Position);
-
-	float dis = distance(float4(input.PosW, 1.0f), plight.Position);
-	if (dis < 70.f)
-	{
-		OutColor = plight.Color;
-		return OutColor;
-	}
+	float4 OutColor = { 0.f, 0.f, 0.f, 0.f };
+	input.Norm = normalize(input.Norm);
+	float3 lightVec = plight.Position - input.PosW;
+	lightVec = normalize(lightVec);
+	float instensity =max(dot(lightVec, input.Norm), 0);
+	float dis = distance(input.PosW, plight.Position);
+	instensity *= max(min((1 - dis / 70.f), 1.f), 0);
+	OutColor = plight.Color * instensity;
 	return OutColor;
 }
