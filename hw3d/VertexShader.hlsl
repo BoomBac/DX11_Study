@@ -3,14 +3,16 @@ struct VS_INPUT
 {
 	float3 Pos : POSITION;
 	float3 Norm : NORMAL;
+	float2 Tex : TEXCOORD;
 };
 
 
 struct VSOut
 {
 	float4 Pos : SV_POSITION;
-	float3 Norm : TEXCOORD0;
+	float3 Norm : NORMAL;
 	float3 PosW : POSITION;
+	float2 Tex : TEXCOORD;
 };
 cbuffer CBuf
 {

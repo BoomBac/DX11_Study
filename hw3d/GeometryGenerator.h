@@ -30,6 +30,11 @@ struct SimpleVertex
 {
 	Vpostion pos;
 	Nomal nomal;
+	struct TexCord
+	{
+		float u;
+		float v;
+	}Tex;
 };
 
 #define GET_POINTAMOUNT(x,y) x*y
@@ -43,7 +48,10 @@ public:
 	static bool GeneratePlane(float width,float depth,int count_x,int count_z, SimpleVertex* VertexBuffer, unsigned short* IndoxBuffer);
 	static bool GenerateBox(float width, float height, float depth, SimpleVertex* VertexBuffer, unsigned short* IndoxBuffer, int Voffset, int Ioffset,Vpostion origin);
 	static float GetHeight(float &x, float &z);
-	//顶点缓冲区，索引缓冲区，三角形法线缓冲区，要求法线的点，当前点位于顶点缓冲的位置
-	static void ComputeNomal(SimpleVertex* vArr, unsigned short* IArr, Nomal* TriNomal, SimpleVertex& Point, int SimpleVertex_indox);
+	//顶点缓冲区，索引缓冲区，三角形法线缓冲区，要求法线的点，当前点位于顶点缓冲的位置 ,几何体顶点缓冲区容量，几何体索引缓冲区容量
+	static void ComputeNomal(SimpleVertex* vArr, unsigned short* IArr, Nomal* TriNomal, SimpleVertex& Point, int SimpleVertex_indox, int vNum, int iNum);
+
+	static int VertexUsed;
+	static int IndoxUsed;
 };
 

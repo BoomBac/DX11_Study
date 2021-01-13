@@ -4,12 +4,13 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include "CusTimer.h"
-#include <DirectXColors.h>
+#include "WICTextureLoader11.h"
 #include "GeometryGenerator.h"
 
 #pragma comment(lib,"d3d11.lib") 
 #pragma comment(lib,"dxgi.lib") 
 #pragma comment(lib,"D3DCompiler.lib")
+#pragma comment( lib, "dxguid.lib")
 
 using namespace DirectX;
 using namespace std;
@@ -46,6 +47,8 @@ ID3D11InputLayout* pVertexLayout = nullptr;
 ID3D11Buffer* pVertexBuffer = nullptr;
 ID3D11Buffer* pIndoxBuffer = nullptr;
 ID3D11Buffer* pConstantBuffer = nullptr;
+ID3D11SamplerState* pSamState = nullptr;
+ID3D11ShaderResourceView* pShaderRs;
 float backcolor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 CusTimer timer ;
 float angle = 0.0f;
@@ -57,10 +60,10 @@ float CubeTransformation= 0.f;	//cube目标偏移量
 float LightTransformation = 50.f;	//light目标偏移量
 const float LerpSpeed = 0.995f;
 
-const auto c = GET_INDOX_AMOUNT(5, 5);
+const auto c = GET_INDOX_AMOUNT(40, 40);
 unsigned short indices[c+36] = { 0 };
 
-const auto i = GET_POINTAMOUNT(5, 5);
+const auto i = GET_POINTAMOUNT(40, 40);
 SimpleVertex vertices[i+8] = { 0 };
 
 ConstantBuffer transformationM;
@@ -76,12 +79,12 @@ HRESULT DoFrame(HWND hWnd)
 { 
 	WCHAR pwch[64] = { 0 };
 	//DrawTriangle(timer.Peek());
-	//angle = -timer.Peek();
+	angle = -timer.Peek();
 
-	//transformationM.mWorld = XMMatrixRotationZ(sinf(angle*TransformationSpeed));
+	transformationM.mWorld = XMMatrixRotationY(angle);
 	//transformationM.mWorld = XMMatrixIdentity();
 	ConstantBuffer cb = {};
-	cb.mWorld = XMMatrixIdentity();
+	cb.mWorld = transformationM.mWorld;
 	cb.mView = transformationM.mView;
 	cb.mProjection = transformationM.mProjection;
 	cb.plight.Color = transformationM.plight.Color;
@@ -105,15 +108,18 @@ HRESULT DoFrame(HWND hWnd)
 	const float r = sin(timer.Peek()) / 2.0f + 0.5f;
 	const float g = sin(timer.Peek()) / 3.0f + 0.3f;
 	const float b = sin(timer.Peek()) / 4.0f + 0.2f;
-	backcolor[0] = r;
-	backcolor[1] = g;
-	backcolor[2] = b;
-	pDeviceContext->ClearRenderTargetView(mRenderTargetView, Colors::MidnightBlue);
+	backcolor[0] = 0.0f;
+	backcolor[1] = 0.75f;
+	backcolor[2] = 1.0f;
+	pDeviceContext->ClearRenderTargetView(mRenderTargetView,backcolor);
 	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
-	//pDeviceContext->DrawIndexed(sizeof(indices) / sizeof(unsigned short), 0, 0);
-	pDeviceContext->DrawIndexed(96, 0, 0);
+
+	//pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs);
+	//pDeviceContext->PSGetSamplers(0, 1, &pSamState);
+
+	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(40,40), 0, 0);
 
 	lerp(CubeTransformation, cubeMove, LerpSpeed);
 	transformationM.mWorld =
@@ -136,7 +142,7 @@ HRESULT DoFrame(HWND hWnd)
 	pDeviceContext->VSSetShader(pVertexShade1, nullptr, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
 
-	pDeviceContext->DrawIndexed(36, 96, 0);
+	pDeviceContext->DrawIndexed(36, GET_INDOX_AMOUNT(40, 40), 0);
 	mSwapChain->Present(0, 0);
 	return hr;
 }
@@ -169,6 +175,7 @@ bool initdx11(HWND hWnd)
 	//多重采样数量和质量级别
 	sd.SampleDesc.Count = 1;
 	sd.SampleDesc.Quality = 0;
+
 
 	//将场景渲染到后台缓冲区
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -286,6 +293,7 @@ HRESULT DrawTriangle()
 	{
 		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
 		{"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,24,D3D11_INPUT_PER_VERTEX_DATA,0},
 	};
 	UINT numElements = ARRAYSIZE(layout);
 
@@ -318,9 +326,10 @@ HRESULT DrawTriangle()
 
 
 
-	GeometryGenerator::GeneratePlane(160.f, 160.f, 5, 5, vertices, indices);
-	//GeometryGenerator::GenerateHill(160.f, 160.f, 5, 5, vertices, indices);
-	GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GET_POINTAMOUNT(5, 5), GET_INDOX_AMOUNT(5, 5), Vpostion{0.f,50.f,0.f});
+	GeometryGenerator::GeneratePlane(160.f, 160.f, 40, 40, vertices, indices);
+	//GeometryGenerator::GenerateHill(160.f, 160.f, 40, 40, vertices, indices);
+	//GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GET_POINTAMOUNT(40, 40), GET_INDOX_AMOUNT(40, 40), Vpostion{0.f,50.f,0.f});
+	GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GeometryGenerator::VertexUsed, GeometryGenerator::IndoxUsed, Vpostion{0.f,50.f,0.f});
 
 	D3D11_BUFFER_DESC bd = {};
 	ZeroMemory(&bd, sizeof(bd));
@@ -379,6 +388,21 @@ HRESULT DrawTriangle()
 	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 4.0f / 3.0f, 0.01f, 1000.f);
 	transformationM.plight.Color = { 0.0f,1.0f,0.f,1.f };
 	transformationM.plight.Position = { 0.f,50.f,0.f,1.f };
+
+	//纹理贴图
+
+	//hr = CreateWICTextureFromFile(pDevice, L"Texture/mat_tex.jpeg", nullptr, &pShaderRs);
+	//D3D11_SAMPLER_DESC samD;
+	//ZeroMemory(&samD, sizeof(samD));
+	//samD.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+	//samD.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	//samD.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	//samD.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	//samD.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	//samD.MinLOD = 0;
+	//samD.MaxLOD = D3D11_FLOAT32_MAX;
+	//pDevice->CreateSamplerState(&samD, &pSamState);
+
 	return hr;
 }
 
@@ -405,15 +429,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_LBUTTONDOWN:
 	{
-		LightTransformation += 10.f;
-		CubeTransformation += 10.f;
+		LightTransformation += 20.f;
+		CubeTransformation += 20.f;
 
 	}
 		break;
 	case WM_RBUTTONDOWN:
 	{
-		LightTransformation -= 10.f;
-		CubeTransformation -= 10.f;
+		LightTransformation -= 20.f;
+		CubeTransformation -= 20.f;
 	}
 		break;
 	}

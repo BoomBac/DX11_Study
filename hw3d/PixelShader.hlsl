@@ -1,32 +1,15 @@
-//struct PointLight
-//{
-//	float4 Ambient;
-//	float4 Diffuse;
-//	float4 Specular;
-//	float4 Position;
-//	float Range;
-//	float4 Att;
-//};
-//struct Material
-//{
-
-//	float4 Ambient;
-//	float4 Diffuse;
-//	float4 Specular; 
-//	float4 Reflect;
-//};
-
 struct PointLight
 {
 	float4 Color;
 	float3 Position;
 };
 
-	struct PS_INPUT
-	{
+struct PS_INPUT
+{
 		float4 Pos : SV_POSITION;
-		float3 Norm : TEXCOORD0;
+		float3 Norm : NORMAL;
 		float3 PosW : POSITION;
+	float2 Tex : TEXCOORD;
 };
 
 cbuffer CBuf
@@ -37,6 +20,10 @@ cbuffer CBuf
 	row_major matrix Projection;
 	PointLight plight;
 };
+//Texture2D Texture0 : register(t0);
+//SamplerState SState : register(s0);
+
+
 
 
 float4 PS(PS_INPUT input) : SV_Target
@@ -47,7 +34,7 @@ float4 PS(PS_INPUT input) : SV_Target
 	lightVec = normalize(lightVec);
 	float instensity =max(dot(lightVec, input.Norm), 0);
 	float dis = distance(input.PosW, plight.Position);
-	instensity *= max(min((1 - dis / 70.f), 1.f), 0);
-	OutColor = plight.Color * instensity;
+	instensity *= max(min((1 - dis / 100.f), 1.f), 0);
+	OutColor = /*Texture0.Sample(SState, input.Tex);*/ plight.Color * instensity;
 	return OutColor;
 }

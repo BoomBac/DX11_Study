@@ -1,28 +1,2 @@
-﻿cl : command line warning D9025: overriding '/D_DEBUG' with '/U_DEBUG'
-  GeometryGenerator.cpp
-M:\vs2019_project\hw3d\hw3d\GeometryGenerator.cpp(49,14): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\GeometryGenerator.cpp(59): message : see reference to function template instantiation 'float GTool::Length<type>(const type &)' being compiled
-          with
-          [
-              type=Nomal
-          ]
-M:\vs2019_project\hw3d\hw3d\GeometryGenerator.cpp(247): message : see reference to function template instantiation 'type GTool::Nomalize<Nomal>(const type &)' being compiled
-          with
-          [
-              type=Nomal
-          ]
-  WinMain.cpp
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(105,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(105,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(106,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(106,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(107,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(107,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(222,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(222,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(223,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(223,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(224,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(224,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-  Generating Code...
+﻿  compilation object save succeeded; see M:\vs2019_project\hw3d\hw3d\PixelShader.cso
   hw3d.vcxproj -> M:\vs2019_project\hw3d\Debug\hw3d.exe
