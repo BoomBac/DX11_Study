@@ -4,6 +4,8 @@ struct VS_INPUT
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD;
 };
+
+
 struct VSOut
 {
 	float4 Pos : SV_POSITION;

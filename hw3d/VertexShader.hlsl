@@ -30,6 +30,7 @@ VSOut VS(VS_INPUT input)
 	vso.Pos = mul(vso.Pos, View);
 	vso.Pos = mul(vso.Pos, Projection);
 	vso.Norm = mul(float4(input.Norm, 1.f), World).xyz;
+	vso.Tex = input.Tex;
 	return vso;
 }
 

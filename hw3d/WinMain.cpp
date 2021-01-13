@@ -32,7 +32,12 @@ struct ConstantBuffer
 	PointLight plight;
 };
 
+// 平面点个数
+int planeVertexCount = 40;
 
+//相关尺寸
+float Size_x = 800;
+float Size_y = 600;
 
 ID3D11DepthStencilView* mDepthStencilView;
 ID3D11Texture2D* mDepthStencilBuffer = nullptr;
@@ -49,6 +54,7 @@ ID3D11Buffer* pIndoxBuffer = nullptr;
 ID3D11Buffer* pConstantBuffer = nullptr;
 ID3D11SamplerState* pSamState = nullptr;
 ID3D11ShaderResourceView* pShaderRs;
+
 float backcolor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 CusTimer timer ;
 float angle = 0.0f;
@@ -78,7 +84,6 @@ void Render();
 HRESULT DoFrame(HWND hWnd)
 { 
 	WCHAR pwch[64] = { 0 };
-	//DrawTriangle(timer.Peek());
 	angle = -timer.Peek();
 
 	transformationM.mWorld = XMMatrixRotationY(angle);
@@ -90,8 +95,7 @@ HRESULT DoFrame(HWND hWnd)
 	cb.plight.Color = transformationM.plight.Color;
 	cb.plight.Position = transformationM.plight.Position;
 	lerp(LightTransformation, transformationM.plight.Position.y, LerpSpeed);
-
-	swprintf(pwch, 64, L"Time is%f", transformationM.plight.Position.y);
+	swprintf(pwch, 64, L"angle is%f", angle);
 	SetWindowText(hWnd, pwch);
 
 	D3D11_MAPPED_SUBRESOURCE mapSub;
@@ -103,8 +107,6 @@ HRESULT DoFrame(HWND hWnd)
 	}
 	memcpy(mapSub.pData, &cb, sizeof(cb));
 	pDeviceContext->Unmap(pConstantBuffer, 0);
-	//Render();
-
 	const float r = sin(timer.Peek()) / 2.0f + 0.5f;
 	const float g = sin(timer.Peek()) / 3.0f + 0.3f;
 	const float b = sin(timer.Peek()) / 4.0f + 0.2f;
@@ -116,10 +118,9 @@ HRESULT DoFrame(HWND hWnd)
 	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
 
-	//pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs);
-	//pDeviceContext->PSGetSamplers(0, 1, &pSamState);
 
-	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(40,40), 0, 0);
+
+	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0, 0);
 
 	lerp(CubeTransformation, cubeMove, LerpSpeed);
 	transformationM.mWorld =
@@ -164,8 +165,8 @@ bool initdx11(HWND hWnd)
 	//创建交换链
 	DXGI_SWAP_CHAIN_DESC sd = {};
 	//缓冲区的属性。我们主要关注的属性有：宽度、高度和像素格式
-	sd.BufferDesc.Width = 800;
-	sd.BufferDesc.Height =600;
+	sd.BufferDesc.Width = Size_x;
+	sd.BufferDesc.Height =Size_y;
 	sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	sd.BufferDesc.RefreshRate.Numerator = 0;
 	sd.BufferDesc.RefreshRate.Denominator = 0;
@@ -206,8 +207,8 @@ bool initdx11(HWND hWnd)
 	D3D11_VIEWPORT vp;
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
-	vp.Width =800;
-	vp.Height = 600;
+	vp.Width =Size_x;
+	vp.Height = Size_y;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 
@@ -326,7 +327,7 @@ HRESULT DrawTriangle()
 
 
 
-	GeometryGenerator::GeneratePlane(160.f, 160.f, 40, 40, vertices, indices);
+	GeometryGenerator::GeneratePlane(160.f, 160.f, planeVertexCount, planeVertexCount, vertices, indices);
 	//GeometryGenerator::GenerateHill(160.f, 160.f, 40, 40, vertices, indices);
 	//GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GET_POINTAMOUNT(40, 40), GET_INDOX_AMOUNT(40, 40), Vpostion{0.f,50.f,0.f});
 	GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GeometryGenerator::VertexUsed, GeometryGenerator::IndoxUsed, Vpostion{0.f,50.f,0.f});
@@ -381,28 +382,32 @@ HRESULT DrawTriangle()
 	//初始化矩阵
 	transformationM.mWorld = XMMatrixIdentity();
 	transformationM.WorldInvTranspose = XMMatrixTranspose(transformationM.mWorld);
-	XMVECTOR Eye = XMVectorSet(0.0f, 80.f, -100.0f, 0.0f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 80.f, -100.f, 0.0f);
 	XMVECTOR At = XMVectorSet(0.0f, 0.f, 0.0f, 0.0f);
-	XMVECTOR Up = XMVectorSet(0.0f, 1.f, 0.0f, 0.0f);
+	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	transformationM.mView = XMMatrixLookAtLH(Eye, At, Up);
-	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, 4.0f / 3.0f, 0.01f, 1000.f);
+	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, Size_x/Size_y, 0.01f, 1000.f);
 	transformationM.plight.Color = { 0.0f,1.0f,0.f,1.f };
 	transformationM.plight.Position = { 0.f,50.f,0.f,1.f };
 
 	//纹理贴图
 
-	//hr = CreateWICTextureFromFile(pDevice, L"Texture/mat_tex.jpeg", nullptr, &pShaderRs);
-	//D3D11_SAMPLER_DESC samD;
-	//ZeroMemory(&samD, sizeof(samD));
-	//samD.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
-	//samD.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	//samD.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	//samD.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	//samD.ComparisonFunc = D3D11_COMPARISON_NEVER;
-	//samD.MinLOD = 0;
-	//samD.MaxLOD = D3D11_FLOAT32_MAX;
-	//pDevice->CreateSamplerState(&samD, &pSamState);
+	//hr = CreateDDSTextureFromFile(pDevice, L"Texture/mat.dds", nullptr, &pShaderRs);
+	hr = CreateWICTextureFromFile(pDevice, L"Texture/dog.jpeg", nullptr, &pShaderRs);
+	pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs);
 
+	D3D11_SAMPLER_DESC samD;
+	ZeroMemory(&samD, sizeof(samD));
+	samD.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	samD.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;
+	samD.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;
+	samD.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samD.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	samD.MinLOD = 0;
+	samD.MaxLOD = D3D11_FLOAT32_MAX;
+	pDevice->CreateSamplerState(&samD, &pSamState);
+
+	pDeviceContext->PSSetSamplers(0, 1, &pSamState);
 	return hr;
 }
 
@@ -431,7 +436,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		LightTransformation += 20.f;
 		CubeTransformation += 20.f;
-
 	}
 		break;
 	case WM_RBUTTONDOWN:
@@ -465,8 +469,17 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreInstance,LPSTR lpCmdLine,in
 
 	RegisterClassEx(&wc);
 	HWND hWnd = CreateWindowEx(0, (LPWSTR)pClassName,TEXT("MyWindow"),
-		WS_CAPTION|WS_MINIMIZEBOX|WS_SYSMENU,200,200,800,600,nullptr,nullptr,hInstance,nullptr);
-
+		WS_CAPTION|WS_MINIMIZEBOX|WS_SYSMENU,0,0,Size_x,Size_y,nullptr,nullptr,hInstance,nullptr);
+	RECT rcWindow;
+	RECT rcClient;
+	GetWindowRect(hWnd, &rcWindow);
+	GetClientRect(hWnd, &rcClient);
+	auto borderWidth = (rcWindow.right - rcWindow.left)
+		- (rcClient.right - rcClient.left);
+	auto borderHeight = (rcWindow.bottom - rcWindow.top)
+		- (rcClient.bottom - rcClient.top);
+	SetWindowPos(hWnd, 0, 0, 0, borderWidth + Size_x, borderHeight + Size_y, SWP_NOMOVE | SWP_NOZORDER);
+	GetClientRect(hWnd, &rcClient);
 	ShowWindow(hWnd,SW_SHOW);
 	MSG msg = {0};
 	initdx11(hWnd);
@@ -480,7 +493,6 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreInstance,LPSTR lpCmdLine,in
 		else
 		{
 			DoFrame(hWnd);
-			//Render();
 		}
 	}
 	ClearDevice();
