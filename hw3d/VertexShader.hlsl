@@ -14,12 +14,19 @@ struct VSOut
 	float3 PosW : POSITION;
 	float2 Tex : TEXCOORD;
 };
+struct PointLight
+{
+	float4 Color;
+	float4 Position;
+};
 cbuffer CBuf
 {
 	row_major matrix World;
 	row_major matrix WorldInvTranspose;
 	row_major matrix View;
 	row_major matrix Projection;
+	PointLight plight;
+	row_major matrix scaling;
 };
 
 VSOut VS(VS_INPUT input)
@@ -30,7 +37,7 @@ VSOut VS(VS_INPUT input)
 	vso.Pos = mul(vso.Pos, View);
 	vso.Pos = mul(vso.Pos, Projection);
 	vso.Norm = mul(float4(input.Norm, 1.f), World).xyz;
-	vso.Tex = input.Tex;
+	vso.Tex = input.Tex; //mul(scaling, float4(input.Tex, 1.0f, 1.0f));
 	return vso;
 }
 

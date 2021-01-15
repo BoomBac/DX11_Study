@@ -30,6 +30,7 @@ struct ConstantBuffer
 	XMMATRIX mView;
 	XMMATRIX mProjection;
 	PointLight plight;
+	XMMATRIX scaling;
 };
 
 // 平面点个数
@@ -48,12 +49,56 @@ ID3D11RenderTargetView* mRenderTargetView = nullptr;
 ID3D11VertexShader* pVertexShade = nullptr;
 ID3D11VertexShader* pVertexShade1 = nullptr;
 ID3D11PixelShader* pPixelShade = nullptr;
+ID3D11PixelShader* pPixelShade1 = nullptr;
 ID3D11InputLayout* pVertexLayout = nullptr;
 ID3D11Buffer* pVertexBuffer = nullptr;
 ID3D11Buffer* pIndoxBuffer = nullptr;
 ID3D11Buffer* pConstantBuffer = nullptr;
 ID3D11SamplerState* pSamState = nullptr;
 ID3D11ShaderResourceView* pShaderRs;
+ID3D11ShaderResourceView* pShaderRs1;
+ID3D11BlendState* pBlendState;
+UINT stride = sizeof(SimpleVertex);
+UINT offset = 0;
+
+//摄像机位移相关
+struct CameraTransform
+{
+	struct 
+	{
+		float x;
+		float y;
+		float z;
+		float w;
+	} axis;
+	struct 
+	{
+		float dx;
+		float dy;
+		float dz;
+	} delta;
+};
+CameraTransform ins_CameraT = { 1.f, 1.f, 1.f, 0.0f,
+1.f,1.f,1.f};
+XMVECTOR Eye = XMVectorSet(ins_CameraT.axis.x, ins_CameraT.axis.y, ins_CameraT.axis.z, ins_CameraT.axis.w);
+//摄像机射线相关
+struct CameraView
+{
+	float x;
+	float y;
+	float z;
+};
+CameraView ins_CameraV = { 0.f,0.f,1.f };
+
+//鼠标移动
+struct MouseMove
+{
+	int xPos;
+	int yPos;
+	float xDelta;
+	float yDelta;
+};
+MouseMove ins_Mousemove = { 0,0,0,0 };
 
 float backcolor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 CusTimer timer ;
@@ -67,10 +112,10 @@ float LightTransformation = 50.f;	//light目标偏移量
 const float LerpSpeed = 0.995f;
 
 const auto c = GET_INDOX_AMOUNT(40, 40);
-unsigned short indices[c+36] = { 0 };
+unsigned short indices[2*c] = { 0 };
 
 const auto i = GET_POINTAMOUNT(40, 40);
-SimpleVertex vertices[i+8] = { 0 };
+SimpleVertex vertices[2*i] = { 0 };
 
 ConstantBuffer transformationM;
 
@@ -78,25 +123,72 @@ void lerp(float &target, float &current, float alpha)
 {
 	current = alpha * current + (1 - alpha) * target;
 }
+bool BuildBlendState()
+{
+	D3D11_BLEND_DESC blendStateDescription;
+	// 初始化blend描述符 
+	ZeroMemory(&blendStateDescription, sizeof(D3D11_BLEND_DESC));
 
+	// 创建一个alpha blend状态. 
+	blendStateDescription.AlphaToCoverageEnable = FALSE;
+	blendStateDescription.IndependentBlendEnable = FALSE;
+	blendStateDescription.RenderTarget[0].BlendEnable = TRUE;
+	blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;		//alpha(source)
+	blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;	//1-alpha(source)
+	blendStateDescription.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+	blendStateDescription.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+	blendStateDescription.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendStateDescription.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendStateDescription.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	if (FAILED(pDevice->CreateBlendState(&blendStateDescription, &pBlendState)))
+	{
+		MessageBox(NULL, L"Create 'Transparent' blend state failed!", L"Error", MB_OK);
+		return false;
+	}
+
+	return true;
+}
 HRESULT DrawTriangle();
 void Render();
 HRESULT DoFrame(HWND hWnd)
-{ 
-	WCHAR pwch[64] = { 0 };
-	angle = -timer.Peek();
+{
+	
+	angle = timer.Peek();
 
-	transformationM.mWorld = XMMatrixRotationY(angle);
-	//transformationM.mWorld = XMMatrixIdentity();
+	//transformationM.mWorld = XMMatrixRotationY(angle);
+	transformationM.mWorld = XMMatrixIdentity();
+
+	lerp(ins_CameraT.delta.dx, ins_CameraT.axis.x, LerpSpeed);
+	lerp(ins_CameraT.delta.dy, ins_CameraT.axis.y, LerpSpeed);
+	lerp(ins_CameraT.delta.dz, ins_CameraT.axis.z, LerpSpeed);
+	//auto c = (ins_Mousemove.xDelta) / Size_x + ins_CameraV.x;
+
+	lerp(ins_Mousemove.xDelta, ins_CameraV.x, LerpSpeed);
+	lerp(ins_Mousemove.yDelta, ins_CameraV.y, LerpSpeed);
+	WCHAR pwch[64] = { 0 };
+	swprintf(pwch, 64, L"angle is%f", c);
+	SetWindowText(hWnd, pwch);
+
+	transformationM.mView = XMMatrixLookToLH({ ins_CameraT.axis.x,ins_CameraT.axis.y,ins_CameraT.axis.z,ins_CameraT.axis.w },//eye_position
+		{ins_CameraV.x,ins_CameraV.y,1,0.f }, //at
+		{ 0.f,1.f,0.0f,0.f }	//up
+	);
 	ConstantBuffer cb = {};
 	cb.mWorld = transformationM.mWorld;
 	cb.mView = transformationM.mView;
 	cb.mProjection = transformationM.mProjection;
 	cb.plight.Color = transformationM.plight.Color;
 	cb.plight.Position = transformationM.plight.Position;
+	// row
+	cb.scaling = {
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		0,0,0,1
+	};
 	lerp(LightTransformation, transformationM.plight.Position.y, LerpSpeed);
-	swprintf(pwch, 64, L"angle is%f", angle);
-	SetWindowText(hWnd, pwch);
+
 
 	D3D11_MAPPED_SUBRESOURCE mapSub;
 	hr = pDeviceContext->Map(pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSub);
@@ -117,11 +209,12 @@ HRESULT DoFrame(HWND hWnd)
 	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
-
-
+	pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs1);
+	pDeviceContext->PSSetSamplers(0, 1, &pSamState);
 
 	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0, 0);
 
+	// 绘制河流
 	lerp(CubeTransformation, cubeMove, LerpSpeed);
 	transformationM.mWorld =
 	{
@@ -131,6 +224,12 @@ HRESULT DoFrame(HWND hWnd)
 		0,cubeMove,0,1
 	};
 	cb.mWorld = transformationM.mWorld;
+	cb.scaling = {
+	1,0,0,angle * 0.1f,
+	0,1,0,0,
+	0,0,1,0,
+	0,0,0,1
+	};
 	hr = pDeviceContext->Map(pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSub);
 	if (FAILED(hr))
 	{
@@ -142,9 +241,19 @@ HRESULT DoFrame(HWND hWnd)
 	pDeviceContext->Unmap(pConstantBuffer, 0);
 	pDeviceContext->VSSetShader(pVertexShade1, nullptr, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
-
-	pDeviceContext->DrawIndexed(36, GET_INDOX_AMOUNT(40, 40), 0);
+	pDeviceContext->PSSetShader(pPixelShade1, nullptr, 0);
+	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
+	pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs);
+	pDeviceContext->PSSetSamplers(0, 1, &pSamState);
+	//开启混合
+	float blendFactor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	pDeviceContext->OMSetBlendState(pBlendState, blendFactor, 0xffffffff);
+	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount,planeVertexCount), GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0);
+	//关闭混合
+	pDeviceContext->OMSetBlendState(0, blendFactor, 0xffffffff);
+	//交换前后台缓冲区
 	mSwapChain->Present(0, 0);
+
 	return hr;
 }
 
@@ -320,6 +429,14 @@ HRESULT DrawTriangle()
 		return hr;
 	}
 	hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShade);
+	hr = D3DReadFileToBlob(L"PixelShader1.cso", &pPSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+	hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShade1);
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return hr;
@@ -327,11 +444,9 @@ HRESULT DrawTriangle()
 
 
 
-	GeometryGenerator::GeneratePlane(160.f, 160.f, planeVertexCount, planeVertexCount, vertices, indices);
-	//GeometryGenerator::GenerateHill(160.f, 160.f, 40, 40, vertices, indices);
-	//GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GET_POINTAMOUNT(40, 40), GET_INDOX_AMOUNT(40, 40), Vpostion{0.f,50.f,0.f});
-	GeometryGenerator::GenerateBox(10.f, 10.f, 10.f, vertices, indices, GeometryGenerator::VertexUsed, GeometryGenerator::IndoxUsed, Vpostion{0.f,50.f,0.f});
-
+	
+	GeometryGenerator::GenerateHill(100.f, 100.f, planeVertexCount, planeVertexCount, vertices, indices);
+	GeometryGenerator::GeneratePlane(500.f, 500.f, planeVertexCount, planeVertexCount, vertices, indices);
 	D3D11_BUFFER_DESC bd = {};
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -359,8 +474,7 @@ HRESULT DrawTriangle()
 	hr = pDevice->CreateBuffer(&Ibd, &isd, &pIndoxBuffer);
 	pDeviceContext->IASetIndexBuffer(pIndoxBuffer,DXGI_FORMAT_R16_UINT,0);
 	// 设置顶点缓冲
-	UINT stride = sizeof(SimpleVertex);
-	UINT offset = 0;
+
 	pDeviceContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
 
 	//创建常量缓冲区
@@ -382,32 +496,31 @@ HRESULT DrawTriangle()
 	//初始化矩阵
 	transformationM.mWorld = XMMatrixIdentity();
 	transformationM.WorldInvTranspose = XMMatrixTranspose(transformationM.mWorld);
-	XMVECTOR Eye = XMVectorSet(0.0f, 80.f, -100.f, 0.0f);
+
 	XMVECTOR At = XMVectorSet(0.0f, 0.f, 0.0f, 0.0f);
 	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	transformationM.mView = XMMatrixLookAtLH(Eye, At, Up);
 	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, Size_x/Size_y, 0.01f, 1000.f);
 	transformationM.plight.Color = { 0.0f,1.0f,0.f,1.f };
 	transformationM.plight.Position = { 0.f,50.f,0.f,1.f };
+	//混合
+	BuildBlendState();
 
 	//纹理贴图
+	hr = CreateWICTextureFromFile(pDevice, L"Texture/water.jpeg", nullptr, &pShaderRs);
 
-	//hr = CreateDDSTextureFromFile(pDevice, L"Texture/mat.dds", nullptr, &pShaderRs);
-	hr = CreateWICTextureFromFile(pDevice, L"Texture/dog.jpeg", nullptr, &pShaderRs);
-	pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs);
-
+	hr = CreateWICTextureFromFile(pDevice, L"Texture/grass.jpeg", nullptr, &pShaderRs1);
 	D3D11_SAMPLER_DESC samD;
 	ZeroMemory(&samD, sizeof(samD));
 	samD.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samD.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;
-	samD.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;
+	samD.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samD.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 	samD.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 	samD.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	samD.MinLOD = 0;
 	samD.MaxLOD = D3D11_FLOAT32_MAX;
 	pDevice->CreateSamplerState(&samD, &pSamState);
 
-	pDeviceContext->PSSetSamplers(0, 1, &pSamState);
 	return hr;
 }
 
@@ -423,28 +536,58 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_KEYDOWN:
 	{
+		switch (wParam)
+		{
+		case VK_UP:
+			ins_CameraT.delta.dx += 10.f;
+			break;		
+		case VK_DOWN:
+			ins_CameraT.delta.dx -= 10.f;
+			break;		
+		case VK_LEFT:
+			ins_CameraT.delta.dz -= 10.f;
+			break;		
+		case VK_RIGHT:
+			ins_CameraT.delta.dz += 10.f;
+			break;
+		case VK_ADD:
+			ins_CameraT.delta.dy += 10.f;
+			break;
+		case VK_SUBTRACT:
+			ins_CameraT.delta.dy -= 10.f;
+			break;
+		default:
+			break;
+		}
 	}
 		break;
 	case WM_CHAR:		//字符敏感性，当输入文字时使用
 	{
-		TCHAR buf[1024];
-		wsprintf(buf, TEXT("Key is %c"), wParam);
-		MessageBox(hwnd, buf, TEXT("key_down"), MB_OK);
 	}
 		break;
 	case WM_LBUTTONDOWN:
 	{
 		LightTransformation += 20.f;
-		CubeTransformation += 20.f;
+		CubeTransformation += 10.f;
+		
+		ins_Mousemove.xPos = LOWORD(lParam);
+		ins_Mousemove.yPos = HIWORD(lParam);
+
 	}
 		break;
 	case WM_RBUTTONDOWN:
 	{
 		LightTransformation -= 20.f;
-		CubeTransformation -= 20.f;
+		CubeTransformation -= 10.f;
 	}
 		break;
+	case WM_LBUTTONUP:
+	{
+		ins_Mousemove.xDelta =(LOWORD(lParam) - ins_Mousemove.xPos)/Size_x + ins_CameraV.x;
+		ins_Mousemove.yDelta = (HIWORD(lParam) - ins_Mousemove.yPos)/Size_y + ins_CameraV.y;
 	}
+	}
+
 
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

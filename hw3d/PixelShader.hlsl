@@ -35,6 +35,7 @@ float4 PS(PS_INPUT input) : SV_Target
 	float instensity =max(dot(lightVec, input.Norm), 0);
 	float dis = distance(input.PosW, plight.Position);
 	instensity *= max(min((1 - dis / 100.f), 1.f), 0);
-	OutColor = Texture0.Sample(SState, input.Tex)+plight.Color * instensity;
+	OutColor = Texture0.Sample(SState, input.Tex); /*+plight.Color * instensity;*/
+	OutColor.a = 0.5f;
 	return OutColor;
 }

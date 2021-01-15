@@ -61,7 +61,7 @@ namespace GTool
 	}
 }
 
-const int TriangleNomCount = 15000;
+const int TriangleNomCount = 80000;
 
 
 GeometryGenerator::GeometryGenerator()
@@ -74,8 +74,8 @@ bool GeometryGenerator::GenerateHill(float width, float depth, int count_x, int 
 	float gap_x = width / (count_x - 1);
 	float gap_z = depth / (count_z - 1);
 	int TriangleCount = (count_x - 1) * (count_z - 1) * 2;
-	int Vcount = 0;
-	int Icount = 0;
+	int Vcount = VertexUsed;
+	int Icount = IndoxUsed;
 	for (int countz = 0; countz < count_z; countz++)
 	{
 		for (int countx = 0; countx < count_x; countx++)
@@ -86,6 +86,8 @@ bool GeometryGenerator::GenerateHill(float width, float depth, int count_x, int 
 				VertexBuffer[Vcount].pos.X,
 				GetHeight(VertexBuffer[Vcount].pos.X, VertexBuffer[Vcount].pos.Z),
 				VertexBuffer[Vcount].pos.Z };
+			VertexBuffer[Vcount].Tex.u = (float)countx / ((float)count_x - 1.f);
+			VertexBuffer[Vcount].Tex.v = (float)countz / ((float)count_z - 1.f);
 			Vcount++;
 		}
 	}
@@ -93,14 +95,14 @@ bool GeometryGenerator::GenerateHill(float width, float depth, int count_x, int 
 	{
 		if ((count - count_x + 1) >= 0 && (count - count_x + 1) % (count_x) == 0)
 			continue;
-		if (Icount < TriangleCount * 3)
+		if ((Icount-IndoxUsed) < TriangleCount * 3)
 		{
-			IndoxBuffer[Icount] = count;
-			IndoxBuffer[Icount + 1] = count + 1;
-			IndoxBuffer[Icount + 2] = count + count_x + 1;
-			IndoxBuffer[Icount + 3] = count;
-			IndoxBuffer[Icount + 4] = count + count_x + 1;
-			IndoxBuffer[Icount + 5] = count + count_x;
+			IndoxBuffer[Icount] = VertexUsed+count;
+			IndoxBuffer[Icount + 1] = VertexUsed + count + 1;
+			IndoxBuffer[Icount + 2] = VertexUsed + count + count_x + 1;
+			IndoxBuffer[Icount + 3] = VertexUsed + count;
+			IndoxBuffer[Icount + 4] = VertexUsed + count + count_x + 1;
+			IndoxBuffer[Icount + 5] = VertexUsed + count + count_x;
 			Icount += 6;
 		}
 	}
@@ -120,8 +122,8 @@ bool GeometryGenerator::GeneratePlane(float width, float depth, int count_x, int
 	float gap_x = width / (count_x - 1);
 	float gap_z = depth / (count_z - 1);
 	int TriangleCount = (count_x - 1) * (count_z - 1) * 2;
-	int Vcount = 0;
-	int Icount = 0;
+	int Vcount = VertexUsed;
+	int Icount = IndoxUsed;
 	for (int countz = 0; countz < count_z; countz++)
 	{
 		for (int countx = 0; countx < count_x; countx++)
@@ -139,14 +141,14 @@ bool GeometryGenerator::GeneratePlane(float width, float depth, int count_x, int
 	{
 		if ((count - count_x + 1) >= 0 && (count - count_x + 1) % (count_x) == 0)
 			continue;
-		if (Icount < TriangleCount * 3)
+		if ((Icount - IndoxUsed )< TriangleCount * 3)
 		{
-			IndoxBuffer[Icount] = count;
-			IndoxBuffer[Icount + 1] = count + 1;
-			IndoxBuffer[Icount + 2] = count + count_x + 1;
-			IndoxBuffer[Icount + 3] = count;
-			IndoxBuffer[Icount + 4] = count + count_x + 1;
-			IndoxBuffer[Icount + 5] = count + count_x;
+			IndoxBuffer[Icount] = VertexUsed + count;
+			IndoxBuffer[Icount + 1] = VertexUsed + count + 1;
+			IndoxBuffer[Icount + 2] = VertexUsed + count + count_x + 1;
+			IndoxBuffer[Icount + 3] = VertexUsed + count;
+			IndoxBuffer[Icount + 4] = VertexUsed + count + count_x + 1;
+			IndoxBuffer[Icount + 5] = VertexUsed + count + count_x;
 			Icount += 6;
 		}
 	}
