@@ -27,6 +27,8 @@ cbuffer CBuf
 	row_major matrix Projection;
 	PointLight plight;
 	row_major matrix scaling;
+	row_major matrix Reflection;
+	bool isReflection;
 };
 
 VSOut VS(VS_INPUT input)

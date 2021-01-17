@@ -117,7 +117,8 @@ bool GeometryGenerator::GenerateHill(float width, float depth, int count_x, int 
 	return true;
 }
 
-bool GeometryGenerator::GeneratePlane(float width, float depth, int count_x, int count_z, SimpleVertex* VertexBuffer, unsigned short* IndoxBuffer)
+bool GeometryGenerator::GeneratePlane(float width, float depth, int count_x, int count_z, SimpleVertex* VertexBuffer, unsigned short* IndoxBuffer,
+	Nomal normal, Vpostion origin)
 {
 	float gap_x = width / (count_x - 1);
 	float gap_z = depth / (count_z - 1);
@@ -128,9 +129,24 @@ bool GeometryGenerator::GeneratePlane(float width, float depth, int count_x, int
 	{
 		for (int countx = 0; countx < count_x; countx++)
 		{
-			VertexBuffer[Vcount].pos.X = (-width) / 2.f + gap_x * countx;
-			VertexBuffer[Vcount].pos.Z = depth / 2.f - gap_z * countz;
-			VertexBuffer[Vcount].pos.Y = 0.f;
+			if (normal.X==1)
+			{
+				VertexBuffer[Vcount].pos.Y = (-width) / 2.f + gap_x * countx +  origin.Y;
+				VertexBuffer[Vcount].pos.Z = depth / 2.f - gap_z * countz + origin.Z;
+				VertexBuffer[Vcount].pos.X = 0.f +- origin.X;
+			}
+			if (normal.Y == 1)
+			{
+				VertexBuffer[Vcount].pos.X = (-width) / 2.f + gap_x * countx +  origin.X;
+				VertexBuffer[Vcount].pos.Z = depth / 2.f - gap_z * countz +  origin.Z;
+				VertexBuffer[Vcount].pos.Y = 0.f +  origin.Y;
+			}
+			if (normal.Z==1)
+			{
+				VertexBuffer[Vcount].pos.X = (-width) / 2.f + gap_x * countx + origin.X;
+				VertexBuffer[Vcount].pos.Y = depth / 2.f - gap_z * countz +  origin.Y;
+				VertexBuffer[Vcount].pos.Z = 0.f +  origin.Z;
+			}
 			VertexBuffer[Vcount].Tex.u = (float)countx / ((float)count_x-1.f);
 			VertexBuffer[Vcount].Tex.v = (float)countz / ((float)count_z-1.f);
 			Vcount++;
@@ -169,6 +185,8 @@ bool GeometryGenerator::GenerateBox(float width, float height, float depth, Simp
 	for (auto i : vbuffer)
 	{
 		i.nomal = { 0.0f,0.0f,0.0f };
+		i.Tex.u = 0.5;
+		i.Tex.v = 0.5;
 	}
 	vbuffer[0].pos = { origin.X + width / 2.f,origin.Y - height / 2.f,origin.Z + depth / 2.f };
 	vbuffer[1].pos = { origin.X + width / 2.f,origin.Y - height / 2.f,origin.Z - depth / 2.f };
@@ -181,7 +199,7 @@ bool GeometryGenerator::GenerateBox(float width, float height, float depth, Simp
 
 	for (int i = 0; i < sizeof(vbuffer) / sizeof(SimpleVertex); i++)
 	{
-		VertexBuffer[Voffset + i] = vbuffer[i];
+		VertexBuffer[VertexUsed + i] = vbuffer[i];
 	}
 	unsigned short ibuffer[] =
 	{
@@ -200,8 +218,8 @@ bool GeometryGenerator::GenerateBox(float width, float height, float depth, Simp
 	};
 	for (int i = 0; i < sizeof(ibuffer) / sizeof(unsigned short); i++)
 	{
-		ibuffer[i] += Voffset;
-		IndoxBuffer[Ioffset + i] = ibuffer[i];
+		ibuffer[i] += VertexUsed;
+		IndoxBuffer[IndoxUsed + i] = ibuffer[i];
 	}
 	VertexUsed += 8;
 	IndoxUsed += 36;

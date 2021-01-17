@@ -1,22 +1,23 @@
-﻿cl : command line warning D9025: overriding '/D_DEBUG' with '/U_DEBUG'
-  WinMain.cpp
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(170,21): warning C4477: 'swprintf' : format string '%f' requires an argument of type 'double', but variadic argument 1 has type 'const int'
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(202,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(202,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(203,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(203,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(204,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(204,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(277,24): warning C4244: '=': conversion from 'float' to 'UINT', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(278,24): warning C4244: '=': conversion from 'float' to 'UINT', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(339,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(339,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(340,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(340,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(341,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(341,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(615,51): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(615,44): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(624,65): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
-M:\vs2019_project\hw3d\hw3d\WinMain.cpp(624,42): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+﻿  WinMain.cpp
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(271,21): warning C4477: 'swprintf' : format string '%f' requires an argument of type 'double', but variadic argument 1 has type 'const int'
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(304,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(304,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(305,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(305,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(306,43): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(306,16): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(427,24): warning C4244: '=': conversion from 'float' to 'UINT', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(428,24): warning C4244: '=': conversion from 'float' to 'UINT', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(467,14): warning C4244: '=': conversion from 'float' to 'UINT', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(468,15): warning C4244: '=': conversion from 'float' to 'UINT', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(507,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(507,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(508,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(508,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(509,44): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(509,17): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(800,51): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(800,44): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(809,65): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
+M:\vs2019_project\hw3d\hw3d\WinMain.cpp(809,42): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
   hw3d.vcxproj -> M:\vs2019_project\hw3d\Debug\hw3d.exe

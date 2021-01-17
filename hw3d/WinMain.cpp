@@ -31,17 +31,21 @@ struct ConstantBuffer
 	XMMATRIX mProjection;
 	PointLight plight;
 	XMMATRIX scaling;
+	XMMATRIX Reflect;
+	bool isReflect;
 };
 
 // 平面点个数
-int planeVertexCount = 40;
+int planeVertexCount = 10;
 
 //相关尺寸
 float Size_x = 800;
 float Size_y = 600;
 
-ID3D11DepthStencilView* mDepthStencilView;
-ID3D11Texture2D* mDepthStencilBuffer = nullptr;
+ID3D11DepthStencilView* pDepthStencilView;
+ID3D11Texture2D* pDepthStencilBuffer = nullptr;
+ID3D11DepthStencilState* pMarkMirrorDSS = nullptr;
+ID3D11DepthStencilState* pDrawReflectionDSS = nullptr;
 ID3D11Device* pDevice = nullptr;
 ID3D11DeviceContext* pDeviceContext = nullptr;
 IDXGISwapChain* mSwapChain = nullptr;
@@ -119,6 +123,62 @@ SimpleVertex vertices[2*i] = { 0 };
 
 ConstantBuffer transformationM;
 
+bool SaveDepthStencilBuffer()
+{
+	D3D11_TEXTURE2D_DESC dsDesc, destTexDesc;
+	ID3D11Texture2D* destTex;
+	HRESULT result;
+
+	if (pDepthStencilBuffer)
+	{
+		pDepthStencilBuffer->GetDesc(&dsDesc);
+		// 使目的和源的描述一致
+		memcpy(&destTexDesc, &dsDesc, sizeof(destTexDesc));
+		destTexDesc.Usage = D3D11_USAGE_STAGING;
+		destTexDesc.BindFlags = 0;
+		destTexDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		result = pDevice->CreateTexture2D(&destTexDesc, 0, &destTex);
+		if (FAILED(result))
+		{
+			return false;
+		}
+
+		//depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+		pDeviceContext->CopyResource(destTex, pDepthStencilBuffer);
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+
+		result = pDeviceContext->Map(destTex, 0, D3D11_MAP_READ, 0, &mappedResource);
+		if (FAILED(result))
+		{
+			return false;
+		}
+
+		FILE* fp = fopen("depth-stencil.csv", "w");
+
+		const UINT WIDTH = destTexDesc.Width;
+		const UINT HEIGHT = destTexDesc.Height;
+		//映射为32位的dword
+		DWORD* pTexels = (DWORD*)mappedResource.pData;
+		for (UINT row = 0; row < HEIGHT; row++)
+		{
+			UINT rowStart = row * mappedResource.RowPitch / sizeof(pTexels[0]);
+			for (UINT col = 0; col < WIDTH; col++)
+			{
+				fprintf(fp, "%08x,", pTexels[rowStart + col]);
+			}
+			fprintf(fp, "\n");
+		}
+
+		fclose(fp);
+		pDeviceContext->Unmap(destTex, 0);
+	}
+	return true;
+
+}
+
+
 void lerp(float &target, float &current, float alpha)
 {
 	current = alpha * current + (1 - alpha) * target;
@@ -143,19 +203,60 @@ bool BuildBlendState()
 
 	if (FAILED(pDevice->CreateBlendState(&blendStateDescription, &pBlendState)))
 	{
-		MessageBox(NULL, L"Create 'Transparent' blend state failed!", L"Error", MB_OK);
+		MessageBox(NULL, TEXT("Create 'Transparent' blend state failed!"), TEXT("Error"), MB_OK);
 		return false;
 	}
 
 	return true;
 }
+bool BuildDepthState()
+{
+	D3D11_DEPTH_STENCIL_DESC mirrorDesc; 
+	mirrorDesc.DepthEnable= true;
+	mirrorDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; 
+	mirrorDesc.DepthFunc = D3D11_COMPARISON_LESS;
+	mirrorDesc.StencilEnable= true;
+	mirrorDesc.StencilReadMask = 0xff; 
+	mirrorDesc.StencilWriteMask = 0xff;
+	mirrorDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	mirrorDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP; 
+	mirrorDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	mirrorDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		 
+	// We are not rendering backfacing polygons, so these settings do not matter. mirrorDesc.BackFace.StencilFailOp
+	mirrorDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+	mirrorDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR; 
+	mirrorDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE;
+	mirrorDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS; 
+	pDevice->CreateDepthStencilState(&mirrorDesc, &pMarkMirrorDSS);
+
+	// // DrawReflectionDSS //
+	D3D11_DEPTH_STENCIL_DESC drawReflectionDesc; 
+	drawReflectionDesc.DepthEnable= true;
+	drawReflectionDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; 
+	drawReflectionDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+	drawReflectionDesc.StencilEnable = true;
+	drawReflectionDesc.StencilReadMask = 0xff; 
+	drawReflectionDesc.StencilWriteMask = 0xff;
+	drawReflectionDesc.FrontFace.StencilFailOp=D3D11_STENCIL_OP_KEEP; 
+	drawReflectionDesc.FrontFace.StencilDepthFailOp= D3D11_STENCIL_OP_KEEP; 
+	drawReflectionDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP; 
+	drawReflectionDesc.FrontFace.StencilFunc= D3D11_COMPARISON_EQUAL;
+	drawReflectionDesc.BackFace.StencilFailOp =D3D11_STENCIL_OP_KEEP; 
+	drawReflectionDesc.BackFace.StencilDepthFailOp=D3D11_STENCIL_OP_KEEP; 
+	drawReflectionDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP; 
+	drawReflectionDesc.BackFace.StencilFunc= D3D11_COMPARISON_EQUAL;
+	pDevice->CreateDepthStencilState(&drawReflectionDesc, &pDrawReflectionDSS);
+	return true;
+}
+
 HRESULT DrawTriangle();
 void Render();
 HRESULT DoFrame(HWND hWnd)
 {
-	
+	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	pDeviceContext->ClearRenderTargetView(mRenderTargetView, backcolor);
 	angle = timer.Peek();
-
 	//transformationM.mWorld = XMMatrixRotationY(angle);
 	transformationM.mWorld = XMMatrixIdentity();
 
@@ -171,7 +272,7 @@ HRESULT DoFrame(HWND hWnd)
 	SetWindowText(hWnd, pwch);
 
 	transformationM.mView = XMMatrixLookToLH({ ins_CameraT.axis.x,ins_CameraT.axis.y,ins_CameraT.axis.z,ins_CameraT.axis.w },//eye_position
-		{ins_CameraV.x,ins_CameraV.y,1,0.f }, //at
+		{ ins_CameraV.x,ins_CameraV.y,1,0.f }, //at
 		{ 0.f,1.f,0.0f,0.f }	//up
 	);
 	ConstantBuffer cb = {};
@@ -180,6 +281,7 @@ HRESULT DoFrame(HWND hWnd)
 	cb.mProjection = transformationM.mProjection;
 	cb.plight.Color = transformationM.plight.Color;
 	cb.plight.Position = transformationM.plight.Position;
+	cb.isReflect = false;
 	// row
 	cb.scaling = {
 		1,0,0,0,
@@ -194,7 +296,7 @@ HRESULT DoFrame(HWND hWnd)
 	hr = pDeviceContext->Map(pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSub);
 	if (FAILED(hr))
 	{
-		MessageBox(NULL,L"MAP failed",L"Error",MB_OK);
+		MessageBox(NULL, L"MAP failed", L"Error", MB_OK);
 		return hr;
 	}
 	memcpy(mapSub.pData, &cb, sizeof(cb));
@@ -205,16 +307,23 @@ HRESULT DoFrame(HWND hWnd)
 	backcolor[0] = 0.0f;
 	backcolor[1] = 0.75f;
 	backcolor[2] = 1.0f;
-	pDeviceContext->ClearRenderTargetView(mRenderTargetView,backcolor);
+	float blendFactor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+
+
 	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
 	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
 	pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs1);
 	pDeviceContext->PSSetSamplers(0, 1, &pSamState);
 
-	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0, 0);
+	pDeviceContext->OMSetDepthStencilState(pMarkMirrorDSS, 1);
+	pDeviceContext->OMSetBlendState(pBlendState, blendFactor, 0xffffffff);
+	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 3 * GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0);
+	pDeviceContext->OMSetDepthStencilState(0, 1);
+	pDeviceContext->OMSetBlendState(NULL, blendFactor, 0xffffffff);
 
-	// 绘制河流
+	// 墙面
 	lerp(CubeTransformation, cubeMove, LerpSpeed);
 	transformationM.mWorld =
 	{
@@ -225,7 +334,7 @@ HRESULT DoFrame(HWND hWnd)
 	};
 	cb.mWorld = transformationM.mWorld;
 	cb.scaling = {
-	1,0,0,angle * 0.1f,
+	1,0,0,/*angle * 0.1f*/0,
 	0,1,0,0,
 	0,0,1,0,
 	0,0,0,1
@@ -237,20 +346,61 @@ HRESULT DoFrame(HWND hWnd)
 		return hr;
 	}
 	memcpy(mapSub.pData, &cb, sizeof(cb));
-
 	pDeviceContext->Unmap(pConstantBuffer, 0);
+
 	pDeviceContext->VSSetShader(pVertexShade1, nullptr, 0);
 	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
-	pDeviceContext->PSSetShader(pPixelShade1, nullptr, 0);
 	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
 	pDeviceContext->PSSetShaderResources(0, 1, &pShaderRs);
 	pDeviceContext->PSSetSamplers(0, 1, &pSamState);
-	//开启混合
-	float blendFactor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	pDeviceContext->OMSetBlendState(pBlendState, blendFactor, 0xffffffff);
-	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount,planeVertexCount), GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0);
-	//关闭混合
-	pDeviceContext->OMSetBlendState(0, blendFactor, 0xffffffff);
+
+	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0, 0);
+	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0);
+	pDeviceContext->DrawIndexed(GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 2 * GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0);
+
+	pDeviceContext->DrawIndexed(36, 4 * GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0);
+	pDeviceContext->DrawIndexed(36, 36+36+ 4 * GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0);
+	//绘制镜子之后的物体
+	auto  RefMat = XMMatrixReflect({ 0.f, 25.f, 0.f });
+	cb.Reflect =
+	{
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		0.f,0.f,30.f,1
+	};
+	cb.isReflect = true;
+	hr = pDeviceContext->Map(pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSub);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, L"MAP failed", L"Error", MB_OK);
+		return hr;
+	}
+	memcpy(mapSub.pData, &cb, sizeof(cb));
+	pDeviceContext->Unmap(pConstantBuffer, 0);
+	pDeviceContext->OMSetDepthStencilState(pDrawReflectionDSS, 1);
+	pDeviceContext->DrawIndexed(36, 4 * GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount)+36, 0);
+	cb.Reflect =
+	{
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		0.f,0.f,70.f,1
+	};
+	hr = pDeviceContext->Map(pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSub);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL, L"MAP failed", L"Error", MB_OK);
+		return hr;
+	}
+	memcpy(mapSub.pData, &cb, sizeof(cb));
+	pDeviceContext->Unmap(pConstantBuffer, 0);
+
+	pDeviceContext->DrawIndexed(36, 4 * GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount)+36*3, 0);
+
+	pDeviceContext->OMSetDepthStencilState(NULL, 1);
+
+
 	//交换前后台缓冲区
 	mSwapChain->Present(0, 0);
 
@@ -312,7 +462,25 @@ bool initdx11(HWND hWnd)
 	ID3D11Texture2D* backBuffer;
 	mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer);
 	hr = pDevice->CreateRenderTargetView(backBuffer, NULL, &mRenderTargetView);
-	pDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, nullptr);
+	//创建深度模板缓冲区
+	D3D11_TEXTURE2D_DESC dsd;
+	dsd.Width = Size_x;
+	dsd.Height = Size_y;
+	dsd.MipLevels = 1;
+	dsd.ArraySize = 1;
+	dsd.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsd.SampleDesc.Count = 1;
+	dsd.SampleDesc.Quality = 0;
+	dsd.Usage = D3D11_USAGE_DEFAULT;
+	dsd.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	dsd.CPUAccessFlags = 0;
+	dsd.MiscFlags = 0;
+	pDevice->CreateTexture2D(&dsd, 0, &pDepthStencilBuffer);
+	pDevice->CreateDepthStencilView(pDepthStencilBuffer, 0, &pDepthStencilView);
+	pDeviceContext->OMSetRenderTargets(1, &mRenderTargetView,pDepthStencilView);
+
+
+	// 创建视口
 	D3D11_VIEWPORT vp;
 	vp.TopLeftX = 0;
 	vp.TopLeftY = 0;
@@ -444,9 +612,22 @@ HRESULT DrawTriangle()
 
 
 
-	
-	GeometryGenerator::GenerateHill(100.f, 100.f, planeVertexCount, planeVertexCount, vertices, indices);
-	GeometryGenerator::GeneratePlane(500.f, 500.f, planeVertexCount, planeVertexCount, vertices, indices);
+	// 3wall
+	GeometryGenerator::GeneratePlane(100.f, 100.f, planeVertexCount, planeVertexCount, vertices, indices, { 0.f,1.f,0.f }, {0.f,0.f,0.f});
+	GeometryGenerator::GeneratePlane(100.f, 100.f, planeVertexCount, planeVertexCount, vertices, indices, { 0.f,0.f,1.f }, {0.f,0.f,50.f});
+	GeometryGenerator::GeneratePlane(100.f, 100.f, planeVertexCount, planeVertexCount, vertices, indices, { 1.f,0.f,0.f }, {-50.f,0.f,0.f});
+	//mirror
+	GeometryGenerator::GeneratePlane(20.f, 20.f, planeVertexCount, planeVertexCount, vertices, indices, { 0.f,0.f,1.f }, {0.f,10.f,25.f});
+	//cube
+	GeometryGenerator::GenerateBox(30.f, 5.f, 5.f, vertices, indices, GET_INDOX_AMOUNT(planeVertexCount,planeVertexCount), 0, { 0.f,0.f,10.f });
+	//cube_ref
+	GeometryGenerator::GenerateBox(30.f, 5.f, 5.f, vertices, indices, GET_INDOX_AMOUNT(planeVertexCount,planeVertexCount), 0, { 0.f,0.f,10.f });
+	//cube1
+	GeometryGenerator::GenerateBox(10.f, 30.f, 10.f, vertices, indices, GET_INDOX_AMOUNT(planeVertexCount,planeVertexCount), 0, { 0.f,10.f,-10.f });
+	//cube1_ref
+	GeometryGenerator::GenerateBox(10.f, 30.f, 10.f, vertices, indices, GET_INDOX_AMOUNT(planeVertexCount,planeVertexCount), 0, { 0.f,10.f,-10.f });
+
+
 	D3D11_BUFFER_DESC bd = {};
 	ZeroMemory(&bd, sizeof(bd));
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -505,11 +686,13 @@ HRESULT DrawTriangle()
 	transformationM.plight.Position = { 0.f,50.f,0.f,1.f };
 	//混合
 	BuildBlendState();
+	//深度/模板缓冲状态
+	BuildDepthState();
 
 	//纹理贴图
-	hr = CreateWICTextureFromFile(pDevice, L"Texture/water.jpeg", nullptr, &pShaderRs);
+	hr = CreateWICTextureFromFile(pDevice, L"Texture/farbic.jpeg", nullptr, &pShaderRs);
 
-	hr = CreateWICTextureFromFile(pDevice, L"Texture/grass.jpeg", nullptr, &pShaderRs1);
+	hr = CreateWICTextureFromFile(pDevice, L"Texture/mirror.jpg", nullptr, &pShaderRs1);
 	D3D11_SAMPLER_DESC samD;
 	ZeroMemory(&samD, sizeof(samD));
 	samD.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -520,6 +703,7 @@ HRESULT DrawTriangle()
 	samD.MinLOD = 0;
 	samD.MaxLOD = D3D11_FLOAT32_MAX;
 	pDevice->CreateSamplerState(&samD, &pSamState);
+	//pDeviceContext->OMSetDepthStencilState(pD)
 
 	return hr;
 }
@@ -539,16 +723,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		switch (wParam)
 		{
 		case VK_UP:
-			ins_CameraT.delta.dx += 10.f;
+			ins_CameraT.delta.dz += 10.f;
 			break;		
 		case VK_DOWN:
-			ins_CameraT.delta.dx -= 10.f;
-			break;		
-		case VK_LEFT:
 			ins_CameraT.delta.dz -= 10.f;
 			break;		
+		case VK_LEFT:
+			ins_CameraT.delta.dx -= 10.f;
+			break;		
 		case VK_RIGHT:
-			ins_CameraT.delta.dz += 10.f;
+			ins_CameraT.delta.dx += 10.f;
 			break;
 		case VK_ADD:
 			ins_CameraT.delta.dy += 10.f;
@@ -568,7 +752,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 	{
 		LightTransformation += 20.f;
-		CubeTransformation += 10.f;
+		//CubeTransformation += 10.f;
 		
 		ins_Mousemove.xPos = LOWORD(lParam);
 		ins_Mousemove.yPos = HIWORD(lParam);
@@ -578,7 +762,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_RBUTTONDOWN:
 	{
 		LightTransformation -= 20.f;
-		CubeTransformation -= 10.f;
+		//CubeTransformation -= 10.f;
+		SaveDepthStencilBuffer();
 	}
 		break;
 	case WM_LBUTTONUP:

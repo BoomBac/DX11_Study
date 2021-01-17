@@ -26,16 +26,25 @@ cbuffer CBuf
 	row_major matrix Projection;
 	PointLight plight;
 	row_major matrix scaling;
+	row_major matrix Reflection;
+	bool isReflection;
 };
 
 VSOut VS(VS_INPUT input)
 {
 	VSOut vso;
 	vso.PosW = mul(float4(input.Pos, 1.0f), World);
-	vso.Pos = mul(float4(input.Pos, 1.0f), World);
-	vso.Pos = mul(vso.Pos, View);
-	vso.Pos = mul(vso.Pos, Projection);
-	vso.Norm = mul(float4(input.Norm, 1.f), World).xyz;
-	vso.Tex = mul(scaling, float4(input.Tex, 1.0f, 1.0f));
-	return vso;
+	if (isReflection)
+	{
+		vso.Pos = mul(float4(input.Pos, 1.0f), Reflection);
+	}
+	else
+	{
+		vso.Pos = mul(float4(input.Pos, 1.0f), World);
+	}
+		vso.Pos = mul(vso.Pos, View);
+		vso.Pos = mul(vso.Pos, Projection);
+		vso.Norm = mul(float4(input.Norm, 1.f), World).xyz;
+		vso.Tex = mul(scaling, float4(input.Tex, 1.0f, 1.0f));
+		return vso;
 }
