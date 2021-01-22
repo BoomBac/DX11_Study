@@ -6,6 +6,8 @@
 #include "CusTimer.h"
 #include "WICTextureLoader11.h"
 #include "GeometryGenerator.h"
+//#include "Window.h"
+#include "App.h"
 
 #pragma comment(lib,"d3d11.lib") 
 #pragma comment(lib,"dxgi.lib") 
@@ -39,8 +41,8 @@ struct ConstantBuffer
 int planeVertexCount = 10;
 
 //相关尺寸
-float Size_x = 800;
-float Size_y = 600;
+float Size_x = 1280;
+float Size_y = 720;
 
 ID3D11DepthStencilView* pDepthStencilView;
 ID3D11Texture2D* pDepthStencilBuffer = nullptr;
@@ -113,7 +115,7 @@ HRESULT hr;
 auto cubeMove = 0.f;		//记录当前偏移量
 float CubeTransformation= 0.f;	//cube目标偏移量
 float LightTransformation = 50.f;	//light目标偏移量
-const float LerpSpeed = 0.995f;
+const float LerpSpeed = 0.999f;
 
 const auto c = GET_INDOX_AMOUNT(40, 40);
 unsigned short indices[2*c] = { 0 };
@@ -177,7 +179,7 @@ bool SaveDepthStencilBuffer()
 	return true;
 
 }
-
+int lerp_count = 0;
 
 void lerp(float &target, float &current, float alpha)
 {
@@ -252,8 +254,12 @@ bool BuildDepthState()
 
 HRESULT DrawTriangle();
 void Render();
-HRESULT DoFrame(HWND hWnd)
+HRESULT DoFrame()
 {
+	WCHAR pwch[64] = { 0 };
+	swprintf(pwch, 64, L"lerp count is");
+	//swprintf(pwch, 64, L"lerp count is%f\n", ins_CameraT.axis.x);
+	//SetWindowText(hWnd, pwch);
 	pDeviceContext->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	pDeviceContext->ClearRenderTargetView(mRenderTargetView, backcolor);
 	angle = timer.Peek();
@@ -264,12 +270,11 @@ HRESULT DoFrame(HWND hWnd)
 	lerp(ins_CameraT.delta.dy, ins_CameraT.axis.y, LerpSpeed);
 	lerp(ins_CameraT.delta.dz, ins_CameraT.axis.z, LerpSpeed);
 	//auto c = (ins_Mousemove.xDelta) / Size_x + ins_CameraV.x;
-
 	lerp(ins_Mousemove.xDelta, ins_CameraV.x, LerpSpeed);
 	lerp(ins_Mousemove.yDelta, ins_CameraV.y, LerpSpeed);
-	WCHAR pwch[64] = { 0 };
-	swprintf(pwch, 64, L"angle is%f", c);
-	SetWindowText(hWnd, pwch);
+
+
+	OutputDebugString(pwch);
 
 	transformationM.mView = XMMatrixLookToLH({ ins_CameraT.axis.x,ins_CameraT.axis.y,ins_CameraT.axis.z,ins_CameraT.axis.w },//eye_position
 		{ ins_CameraV.x,ins_CameraV.y,1,0.f }, //at
@@ -713,117 +718,96 @@ HRESULT DrawTriangle()
 //回调函数
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	//switch (uMsg)
+	//{	
+	//case WM_CLOSE:
+	//	PostQuitMessage(69);
+	//	break;
+	//case WM_KEYDOWN:
+	//{
+	//	switch (wParam)
+	//	{
+	//	case VK_UP:
+	//		ins_CameraT.delta.dz += 10.f;
+	//		break;		
+	//	case VK_DOWN:
+	//		ins_CameraT.delta.dz -= 10.f;
+	//		break;		
+	//	case VK_LEFT:
+	//		ins_CameraT.delta.dx -= 10.f;
+	//		break;		
+	//	case VK_RIGHT:
+	//		ins_CameraT.delta.dx += 10.f;
+	//		break;
+	//	case VK_ADD:
+	//		ins_CameraT.delta.dy += 10.f;
+	//		break;
+	//	case VK_SUBTRACT:
+	//		ins_CameraT.delta.dy -= 10.f;
+	//		break;
+	//	default:
+	//		break;
+	//	}
+	//}
+	//	break;
+	//case WM_CHAR:		//字符敏感性，当输入文字时使用
+	//{
+	//}
+	//	break;
+	//case WM_LBUTTONDOWN:
+	//{
+	//	LightTransformation += 20.f;
+	//	//CubeTransformation += 10.f;
+	//	
+	//	ins_Mousemove.xPos = LOWORD(lParam);
+	//	ins_Mousemove.yPos = HIWORD(lParam);
+
+	//}
+	//	break;
+	//case WM_RBUTTONDOWN:
+	//{
+	//	LightTransformation -= 20.f;
+	//}
+	//	break;
+	//case WM_LBUTTONUP:
+	//{
+	//	ins_Mousemove.xDelta =(LOWORD(lParam) - ins_Mousemove.xPos)/Size_x + ins_CameraV.x;
+	//	ins_Mousemove.yDelta = (HIWORD(lParam) - ins_Mousemove.yPos)/Size_y + ins_CameraV.y;
+	//}
+	//}
+
+
+	//return DefWindowProc(hwnd, uMsg, wParam, lParam);
 	switch (uMsg)
-	{	
+	{
 	case WM_CLOSE:
 		PostQuitMessage(69);
 		break;
-	case WM_KEYDOWN:
-	{
-		switch (wParam)
-		{
-		case VK_UP:
-			ins_CameraT.delta.dz += 10.f;
-			break;		
-		case VK_DOWN:
-			ins_CameraT.delta.dz -= 10.f;
-			break;		
-		case VK_LEFT:
-			ins_CameraT.delta.dx -= 10.f;
-			break;		
-		case VK_RIGHT:
-			ins_CameraT.delta.dx += 10.f;
-			break;
-		case VK_ADD:
-			ins_CameraT.delta.dy += 10.f;
-			break;
-		case VK_SUBTRACT:
-			ins_CameraT.delta.dy -= 10.f;
-			break;
-		default:
-			break;
-		}
 	}
-		break;
-	case WM_CHAR:		//字符敏感性，当输入文字时使用
-	{
-	}
-		break;
-	case WM_LBUTTONDOWN:
-	{
-		LightTransformation += 20.f;
-		//CubeTransformation += 10.f;
-		
-		ins_Mousemove.xPos = LOWORD(lParam);
-		ins_Mousemove.yPos = HIWORD(lParam);
-
-	}
-		break;
-	case WM_RBUTTONDOWN:
-	{
-		LightTransformation -= 20.f;
-		//CubeTransformation -= 10.f;
-		SaveDepthStencilBuffer();
-	}
-		break;
-	case WM_LBUTTONUP:
-	{
-		ins_Mousemove.xDelta =(LOWORD(lParam) - ins_Mousemove.xPos)/Size_x + ins_CameraV.x;
-		ins_Mousemove.yDelta = (HIWORD(lParam) - ins_Mousemove.yPos)/Size_y + ins_CameraV.y;
-	}
-	}
-
-
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreInstance,LPSTR lpCmdLine,int nCmdShow)
 {
-
-	const auto pClassName = TEXT("hw3d");
-	WNDCLASSEX wc = { 0 };
-	wc.cbSize = sizeof(wc);
-	wc.style = CS_OWNDC;
-	wc.lpfnWndProc = WindowProc;	//回调函数	在窗口进行操作产生反馈
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hIcon = nullptr;
-	wc.hInstance = hInstance;
-	wc.hCursor = nullptr;
-	wc.hbrBackground = nullptr;
-	wc.lpszMenuName = nullptr;
-	wc.lpszClassName = pClassName;
-	wc.hIconSm = nullptr;
-
-	RegisterClassEx(&wc);
-	HWND hWnd = CreateWindowEx(0, (LPWSTR)pClassName,TEXT("MyWindow"),
-		WS_CAPTION|WS_MINIMIZEBOX|WS_SYSMENU,0,0,Size_x,Size_y,nullptr,nullptr,hInstance,nullptr);
-	RECT rcWindow;
-	RECT rcClient;
-	GetWindowRect(hWnd, &rcWindow);
-	GetClientRect(hWnd, &rcClient);
-	auto borderWidth = (rcWindow.right - rcWindow.left)
-		- (rcClient.right - rcClient.left);
-	auto borderHeight = (rcWindow.bottom - rcWindow.top)
-		- (rcClient.bottom - rcClient.top);
-	SetWindowPos(hWnd, 0, 0, 0, borderWidth + Size_x, borderHeight + Size_y, SWP_NOMOVE | SWP_NOZORDER);
-	GetClientRect(hWnd, &rcClient);
-	ShowWindow(hWnd,SW_SHOW);
-	MSG msg = {0};
-	initdx11(hWnd);
-	while (WM_QUIT!= msg.message)
-	{
-		if(PeekMessage(&msg,NULL,0,0,PM_REMOVE))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-		else
-		{
-			DoFrame(hWnd);
-		}
-	}
-	ClearDevice();
+	LPCWSTR WindowName = TEXT("RenderEngine");
+	App MyApp(800, 600, WindowName);
+	MyApp.AppWindow.SetText(WindowName);
+	MyApp.HandleMessage();
+	//MSG msg = {0};
+	////initdx11(hWnd);
+	//while (WM_QUIT!= msg.message)
+	//{
+	//	if(PeekMessage(&msg,NULL,0,0,PM_REMOVE))
+	//	{
+	//		TranslateMessage(&msg);
+	//		DispatchMessage(&msg);
+	//	}
+	//	else
+	//	{
+	//		//DoFrame();
+	//	}
+	//}
+	////ClearDevice();
 	return 0;
 }
 
