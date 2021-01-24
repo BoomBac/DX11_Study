@@ -791,7 +791,6 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreInstance,LPSTR lpCmdLine,in
 {
 	LPCWSTR WindowName = TEXT("RenderEngine");
 	App MyApp(800, 600, WindowName);
-	MyApp.AppWindow.SetText(WindowName);
 	MyApp.HandleMessage();
 	//MSG msg = {0};
 	////initdx11(hWnd);

@@ -2,7 +2,7 @@
 
 App::App(int width, int height, LPCWSTR Text) : AppWindow(width,height,Text)
 {
-	AppWindow.SetText(NULL);
+	AppWindow.SetText(Text);
 }
 
 App::~App()

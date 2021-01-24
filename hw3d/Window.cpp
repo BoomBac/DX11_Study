@@ -39,6 +39,54 @@ LRESULT CALLBACK Window::MessageHandle(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 		return 0;
 	case WM_KEYDOWN:
 		GameInput.OnKeyCaptured(static_cast<unsigned char>(wParam),KeyState::Press);
+		break;
+	case  WM_KEYUP:
+		GameInput.OnKeyCaptured(static_cast<unsigned char>(wParam), KeyState::Release);
+		break;
+	case WM_MOUSEMOVE:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			GameInput.OnMouseCapture(MouseState::Move, pt.x, pt.y);
+		}
+		break;
+	case WM_LBUTTONDOWN:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			GameInput.OnMouseCapture(MouseState::LPress,pt.x, pt.y);
+		}
+		break;
+	case WM_LBUTTONUP:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			GameInput.OnMouseCapture(MouseState::LRelease, pt.x, pt.y);
+		}
+		break;
+	case WM_RBUTTONDOWN:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			GameInput.OnMouseCapture(MouseState::RPress, pt.x, pt.y);
+		}
+		break;
+	case WM_RBUTTONUP:
+		{
+			const POINTS pt = MAKEPOINTS(lParam);
+			GameInput.OnMouseCapture(MouseState::RRelease, pt.x, pt.y);
+		}
+		break;
+	case WM_MOUSEWHEEL:
+	{
+		const POINTS pt = MAKEPOINTS(lParam);
+		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+		if (delta>0)
+		{
+			GameInput.OnMouseCapture(MouseState::WheelUp, pt.x, pt.y);
+		}
+		else
+		{
+			GameInput.OnMouseCapture(MouseState::WheelDown, pt.x, pt.y);
+		}
+	}
+		break;
 	}
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -102,7 +150,6 @@ Window::Window(int width, int height, const LPCWSTR& WindowName) : width(width),
 	GetClientRect(hWnd, &rcClient);
 
 	ShowWindow(hWnd, SW_SHOW);
-	//UpdateWindow(hWnd);
 }
 // 设置窗口标题
 void Window::SetText(LPCWSTR NewText)
