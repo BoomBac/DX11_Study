@@ -8,6 +8,7 @@ public:
 	// 窗口消息处理
 	void HandleMessage();
 	Window AppWindow;
+	void DoFrame();
 private:
 
 	// 

@@ -22,6 +22,12 @@ void App::HandleMessage()
 		else
 		{
 		}
+		DoFrame();
 	}
+}
+
+void App::DoFrame()
+{
+	AppWindow.Gfx().EndFrame();
 }
 

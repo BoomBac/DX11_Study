@@ -1,6 +1,8 @@
 #pragma once
 #include "ChiliWin.h"
 #include "input.h"
+#include "Graphics.h"
+#include <memory>
 
 //class input;
 class App;
@@ -26,13 +28,15 @@ public:
 	~Window();
 	Window(const Window&) = delete;
 	Window& operator=(const Window&) = delete;
+	Graphics& Gfx();
 	void SetText(LPCWSTR);
-
+	HWND GetHWND();
 private:
 	int width;
 	int height;
 	HWND hWnd;
 	input GameInput;
+	std::unique_ptr<Graphics> pGfx;
 	//消息处理函数
 	static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	static LRESULT CALLBACK HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

@@ -253,6 +253,103 @@ bool BuildDepthState()
 }
 
 HRESULT DrawTriangle();
+HRESULT Cube()
+{
+	// 编译创建顶点着色器
+	ID3DBlob* pVSBlob = nullptr;
+	hr = D3DReadFileToBlob(L"VertexShader.cso", &pVSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+	hr = pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pVertexShade);
+
+	//定义输入布局描述
+	const D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"NORMAL",0,DXGI_FORMAT_R32G32B32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,24,D3D11_INPUT_PER_VERTEX_DATA,0},
+	};
+	UINT numElements = ARRAYSIZE(layout);
+	//创建输入布局
+	hr = pDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
+		pVSBlob->GetBufferSize(), &pVertexLayout);
+	pVSBlob->Release();
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+	//编译并创建像素着色器
+	ID3DBlob* pPSBlob = nullptr;
+	hr = D3DReadFileToBlob(L"PixelShader.cso", &pPSBlob);
+	if (FAILED(hr))
+	{
+		MessageBox(NULL,
+			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		return hr;
+	}
+	hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShade);
+
+	//创建顶点缓冲
+	GeometryGenerator::GenerateBox(30.f, 5.f, 5.f, vertices, indices, GET_INDOX_AMOUNT(planeVertexCount, planeVertexCount), 0, { 0.f,0.f,10.f });
+	D3D11_BUFFER_DESC bd = {};
+	ZeroMemory(&bd, sizeof(bd));
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(vertices);
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0;
+	D3D11_SUBRESOURCE_DATA InitData;
+	ZeroMemory(&InitData, sizeof(InitData));
+	InitData.pSysMem = vertices;
+	hr = pDevice->CreateBuffer(&bd, &InitData, &pVertexBuffer);
+	if (FAILED(hr))
+		return hr;
+	// 创建索引缓冲
+	D3D11_BUFFER_DESC Ibd = {};
+	Ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	Ibd.Usage = D3D11_USAGE_DEFAULT;
+	Ibd.CPUAccessFlags = 0;
+	Ibd.MiscFlags = 0;
+	Ibd.ByteWidth = sizeof(indices);
+	Ibd.StructureByteStride = sizeof(unsigned short);
+
+	D3D11_SUBRESOURCE_DATA isd = {};
+	isd.pSysMem = indices;
+	hr = pDevice->CreateBuffer(&Ibd, &isd, &pIndoxBuffer);
+
+	//创建常量缓冲区
+	D3D11_BUFFER_DESC cbd = {};
+	cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbd.Usage = D3D11_USAGE_DYNAMIC;
+	cbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbd.MiscFlags = 0;
+	cbd.ByteWidth = sizeof(ConstantBuffer);
+	cbd.StructureByteStride = 0;
+
+	hr = pDevice->CreateBuffer(&cbd, nullptr, &pConstantBuffer);
+
+	pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
+	// 设置图元拓扑
+	//pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//初始化矩阵
+	transformationM.mWorld = XMMatrixIdentity();
+	transformationM.WorldInvTranspose = XMMatrixTranspose(transformationM.mWorld);
+
+	XMVECTOR At = XMVectorSet(0.0f, 0.f, 0.0f, 0.0f);
+	XMVECTOR Eye = XMVectorSet(0.0f, 0.f, -20.0f, 0.0f);
+	XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	transformationM.mView = XMMatrixLookAtLH(Eye, At, Up);
+	transformationM.mProjection = XMMatrixPerspectiveFovLH(XM_PIDIV2, Size_x / Size_y, 0.01f, 1000.f);
+	transformationM.plight.Color = { 0.0f,1.0f,0.f,1.f };
+	transformationM.plight.Position = { 0.f,0.f,0.f,1.f };
+
+	return hr;
+}
+
 void Render();
 HRESULT DoFrame()
 {
@@ -411,7 +508,46 @@ HRESULT DoFrame()
 
 	return hr;
 }
+void DrawCube()
+{
+	ConstantBuffer cb = {};
+	cb.mWorld = transformationM.mWorld;
+	cb.mView = transformationM.mView;
+	cb.mProjection = transformationM.mProjection;
+	cb.plight.Color = transformationM.plight.Color;
+	cb.plight.Position = transformationM.plight.Position;
+	cb.isReflect = false;
+	// row
+	cb.scaling = {
+		1,0,0,0,
+		0,1,0,0,
+		0,0,1,0,
+		0,0,0,1
+	};
+	D3D11_MAPPED_SUBRESOURCE mapSub;
+	hr = pDeviceContext->Map(pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapSub);
+	//if (FAILED(hr))
+	//{
+	//	MessageBox(NULL, L"MAP failed", L"Error", MB_OK);
+	//	return hr;
+	//}
+	memcpy(mapSub.pData, &cb, sizeof(cb));
+	pDeviceContext->Unmap(pConstantBuffer, 0);
 
+	FLOAT color[] = { 0.f,1.f,0.f,0.f };
+	pDeviceContext->ClearRenderTargetView(mRenderTargetView, color);
+	pDeviceContext->IASetInputLayout(pVertexLayout);
+	pDeviceContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
+	pDeviceContext->IASetIndexBuffer(pIndoxBuffer, DXGI_FORMAT_R16_UINT, 0);
+	//pDeviceContext->VSSetConstantBuffers(0, 1, &pConstantBuffer);
+	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pDeviceContext->PSSetConstantBuffers(0, 1, &pConstantBuffer);
+	pDeviceContext->VSSetShader(pVertexShade, nullptr, 0);
+	pDeviceContext->PSSetShader(pPixelShade, nullptr, 0);
+
+	pDeviceContext->DrawIndexed(36, 0, 0);
+	mSwapChain->Present(0, 0);
+}
 bool initdx11(HWND hWnd)
 {
 	//创建device和context
@@ -467,22 +603,22 @@ bool initdx11(HWND hWnd)
 	ID3D11Texture2D* backBuffer;
 	mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&backBuffer);
 	hr = pDevice->CreateRenderTargetView(backBuffer, NULL, &mRenderTargetView);
-	//创建深度模板缓冲区
-	D3D11_TEXTURE2D_DESC dsd;
-	dsd.Width = Size_x;
-	dsd.Height = Size_y;
-	dsd.MipLevels = 1;
-	dsd.ArraySize = 1;
-	dsd.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	dsd.SampleDesc.Count = 1;
-	dsd.SampleDesc.Quality = 0;
-	dsd.Usage = D3D11_USAGE_DEFAULT;
-	dsd.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	dsd.CPUAccessFlags = 0;
-	dsd.MiscFlags = 0;
-	pDevice->CreateTexture2D(&dsd, 0, &pDepthStencilBuffer);
-	pDevice->CreateDepthStencilView(pDepthStencilBuffer, 0, &pDepthStencilView);
-	pDeviceContext->OMSetRenderTargets(1, &mRenderTargetView,pDepthStencilView);
+	////创建深度模板缓冲区
+	//D3D11_TEXTURE2D_DESC dsd;
+	//dsd.Width = Size_x;
+	//dsd.Height = Size_y;
+	//dsd.MipLevels = 1;
+	//dsd.ArraySize = 1;
+	//dsd.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	//dsd.SampleDesc.Count = 1;
+	//dsd.SampleDesc.Quality = 0;
+	//dsd.Usage = D3D11_USAGE_DEFAULT;
+	//dsd.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	//dsd.CPUAccessFlags = 0;
+	//dsd.MiscFlags = 0;
+	//pDevice->CreateTexture2D(&dsd, 0, &pDepthStencilBuffer);
+	//pDevice->CreateDepthStencilView(pDepthStencilBuffer, 0, &pDepthStencilView);
+	pDeviceContext->OMSetRenderTargets(1, &mRenderTargetView,nullptr);
 
 
 	// 创建视口
@@ -496,7 +632,8 @@ bool initdx11(HWND hWnd)
 
 	pDeviceContext->RSSetViewports(1, &vp);
 
-	auto a = DrawTriangle();
+	//auto a = DrawTriangle();
+	auto a = Cube();
 	if (FAILED(a))
 	{
 		MessageBox(NULL,
@@ -609,6 +746,11 @@ HRESULT DrawTriangle()
 			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
 		return hr;
 	}
+	if (pPixelShade == nullptr)
+	{
+		MessageBox(NULL,
+			L"PS is null", L"Error", MB_OK);
+	}
 	hr = pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pPixelShade1);
 	pPSBlob->Release();
 	if (FAILED(hr))
@@ -709,7 +851,6 @@ HRESULT DrawTriangle()
 	samD.MaxLOD = D3D11_FLOAT32_MAX;
 	pDevice->CreateSamplerState(&samD, &pSamState);
 	//pDeviceContext->OMSetDepthStencilState(pD)
-
 	return hr;
 }
 
@@ -791,22 +932,27 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPreInstance,LPSTR lpCmdLine,in
 {
 	LPCWSTR WindowName = TEXT("RenderEngine");
 	App MyApp(800, 600, WindowName);
-	MyApp.HandleMessage();
-	//MSG msg = {0};
-	////initdx11(hWnd);
-	//while (WM_QUIT!= msg.message)
-	//{
-	//	if(PeekMessage(&msg,NULL,0,0,PM_REMOVE))
-	//	{
-	//		TranslateMessage(&msg);
-	//		DispatchMessage(&msg);
-	//	}
-	//	else
-	//	{
-	//		//DoFrame();
-	//	}
-	//}
-	////ClearDevice();
+	
+	//MyApp.HandleMessage();
+
+	MSG msg = {0};
+	initdx11(MyApp.AppWindow.GetHWND());
+	while (WM_QUIT!= msg.message)
+	{
+		if(PeekMessage(&msg,NULL,0,0,PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		else
+		{
+			//DoFrame();
+			DrawCube();
+		}
+	}
+	ClearDevice();
 	return 0;
 }
+
+
 

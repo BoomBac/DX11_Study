@@ -28,14 +28,15 @@ SamplerState SState;
 
 float4 PS(PS_INPUT input) : SV_Target
 {
-	float4 OutColor = { 0.f, 0.f, 0.f, 0.f };
-	input.Norm = normalize(input.Norm);
-	float3 lightVec = plight.Position - input.PosW;
-	lightVec = normalize(lightVec);
-	float instensity =max(dot(lightVec, input.Norm), 0);
-	float dis = distance(input.PosW, plight.Position);
-	instensity *= max(min((1 - dis / 100.f), 1.f), 0);
-	OutColor = Texture0.Sample(SState, input.Tex); /*+plight.Color * instensity;*/
-	OutColor.a = 0.2f;
+	float4 OutColor = { 1.f, 0.f, 0.f, 1.f };
+	//input.Norm = normalize(input.Norm);
+	//float3 lightVec = plight.Position - input.PosW;
+	//lightVec = normalize(lightVec);
+	//float instensity =max(dot(lightVec, input.Norm), 0);
+	//float dis = distance(input.PosW, plight.Position);
+	//instensity *= max(min((1 - dis / 100.f), 1.f), 0);
+	//OutColor = Texture0.Sample(SState, input.Tex); /*+plight.Color * instensity;*/
+	//OutColor.a = 0.2f;
+	OutColor *= 0.5f;
 	return OutColor;
 }

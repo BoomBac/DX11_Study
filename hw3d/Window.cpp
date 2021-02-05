@@ -150,11 +150,24 @@ Window::Window(int width, int height, const LPCWSTR& WindowName) : width(width),
 	GetClientRect(hWnd, &rcClient);
 
 	ShowWindow(hWnd, SW_SHOW);
+	// 测试用，屏蔽window内部dx设备初始化
+	//pGfx = std::make_unique<Graphics>(hWnd);
 }
+
+Graphics& Window::Gfx()
+{
+	return *pGfx;
+}
+
 // 设置窗口标题
 void Window::SetText(LPCWSTR NewText)
 {
 	SetWindowText(hWnd, NewText);
+}
+
+HWND Window::GetHWND()
+{
+	return hWnd;
 }
 
 Window::~Window()

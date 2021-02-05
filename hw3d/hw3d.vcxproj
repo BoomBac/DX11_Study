@@ -156,21 +156,43 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="Bindable.cpp" />
+    <ClCompile Include="Box.cpp" />
+    <ClCompile Include="ConstantBuffer.cpp" />
     <ClCompile Include="CusTimer.cpp" />
+    <ClCompile Include="Drawable.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
+    <ClCompile Include="Graphics.cpp" />
+    <ClCompile Include="IndoxBuffer.cpp" />
     <ClCompile Include="input.cpp" />
+    <ClCompile Include="InputLayout.cpp" />
+    <ClCompile Include="PixelShader.cpp" />
+    <ClCompile Include="VertexBuffer.cpp" />
+    <ClCompile Include="VertexShader.cpp" />
     <ClCompile Include="Window.cpp" />
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="Z:\DX11TextureLoder\DirectXTex\WICTextureLoader\WICTextureLoader11.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
+    <ClInclude Include="Bindable.h" />
+    <ClInclude Include="Box.h" />
     <ClInclude Include="ChiliWin.h" />
+    <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="CusTimer.h" />
+    <ClInclude Include="Drawable.h" />
     <ClInclude Include="GeometryGenerator.h" />
+    <ClInclude Include="Graphics.h" />
+    <ClInclude Include="IndoxBuffer.h" />
     <ClInclude Include="input.h" />
+    <ClInclude Include="InputLayout.h" />
     <ClInclude Include="LightHelper.h" />
+    <ClInclude Include="PixelShader.h" />
     <ClInclude Include="Tool.h" />
+    <ClInclude Include="Topology.h" />
+    <ClInclude Include="Vertex.h" />
+    <ClInclude Include="VertexBuffer.h" />
+    <ClInclude Include="VertexShader.h" />
     <ClInclude Include="Window.h" />
     <ClInclude Include="Z:\DX11TextureLoder\DirectXTex\WICTextureLoader\WICTextureLoader11.h" />
   </ItemGroup>
